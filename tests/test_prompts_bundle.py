@@ -35,9 +35,10 @@ class _CaptureFakeLLM(FakeLLMClient):
         messages: list[dict[str, str]],
         *,
         temperature: float | None = None,
+        model: str | None = None,
     ) -> str:
         self.calls.append(messages)
-        return super().chat(messages, temperature=temperature)
+        return super().chat(messages, temperature=temperature, model=model)
 
 
 def test_prompts_dir_overrides_single_file(

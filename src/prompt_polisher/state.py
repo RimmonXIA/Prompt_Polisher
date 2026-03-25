@@ -18,6 +18,7 @@ class GraphState(TypedDict, total=False):
     critic_passed: bool
     critic_iterations: int
     critic_halted_max: bool
+    prm_score: float
 
     output_route: OutputRoute
     final_prompt: str

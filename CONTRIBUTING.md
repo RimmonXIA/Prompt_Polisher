@@ -27,9 +27,11 @@ uv sync --extra langfuse
 
 ```bash
 uv run pytest
-uv run ruff check src tests
+uv run ruff check src tests scripts
 uv run mypy src
 ```
+
+Optional (needs network): verify reference URLs in [docs/THEORY.zh.md](docs/THEORY.zh.md) with `uv run python scripts/check_theory_urls.py` (use `--list-only` to skip HTTP).
 
 CI runs the same steps with `uv sync --frozen` (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 

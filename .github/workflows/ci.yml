@@ -23,7 +23,7 @@ jobs:
         run: uv sync --all-groups --frozen
 
       - name: Ruff
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests scripts
 
       - name: Mypy
         run: uv run mypy src

@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     llm_temperature: float = Field(default=0.2, alias="LLM_TEMPERATURE", ge=0.0, le=2.0)
     max_critic_iterations: int = Field(default=3, alias="MAX_CRITIC_ITERATIONS", ge=1, le=20)
 
+    critic_use_prm: bool = Field(default=False, alias="CRITIC_USE_PRM")
+    prm_model: str | None = Field(default=None, alias="PRM_MODEL")
+    prm_min_score: float = Field(default=0.45, alias="PRM_MIN_SCORE", ge=0.0, le=1.0)
+    prm_temperature: float = Field(default=0.0, alias="PRM_TEMPERATURE", ge=0.0, le=2.0)
+
     author_trust_mode: bool = Field(default=True, alias="AUTHOR_TRUST_MODE")
 
     prompts_dir: Path | None = Field(default=None, alias="PROMPTS_DIR")
@@ -76,6 +81,7 @@ class Settings(BaseSettings):
         "author_trust_mode",
         "abort_on_heuristic_injection",
         "abort_on_radar_high",
+        "critic_use_prm",
         mode="before",
     )
     @classmethod
@@ -116,6 +122,11 @@ class Settings(BaseSettings):
         if self.llm_provider == "deepseek":
             return self.deepseek_model
         return self.openai_model
+
+    def resolved_prm_model(self) -> str:
+        if self.prm_model and self.prm_model.strip():
+            return self.prm_model.strip()
+        return self.resolved_model()
 
     def apply_langchain_env(self) -> None:
         import os

@@ -21,6 +21,7 @@ class _ReportParts:
     critic_passed: object
     critic_iters: object
     critic_fb: str
+    prm_score: object
     halted: object
     compilation_aborted: bool
     abort_reason: str
@@ -40,6 +41,7 @@ def _parts_from_state(state: GraphState) -> _ReportParts:
         critic_passed=state.get("critic_passed"),
         critic_iters=state.get("critic_iterations"),
         critic_fb=str(state.get("critic_feedback") or "").strip(),
+        prm_score=state.get("prm_score"),
         halted=state.get("critic_halted_max"),
         compilation_aborted=bool(state.get("compilation_aborted")),
         abort_reason=str(state.get("abort_reason") or "").strip(),
@@ -99,6 +101,7 @@ def compilation_report_dict(
             "iterations": p.critic_iters,
             "halted_at_max": p.halted,
             "feedback": p.critic_fb,
+            "prm_score": p.prm_score,
         },
         "draft": p.draft,
         "deliverables": {
@@ -149,6 +152,7 @@ def render_compilation_report(
         lines.append(_bullet_line("Output route", p.route))
         lines.append(_bullet_line("Critic passed", p.critic_passed))
         lines.append(_bullet_line("Critic iterations", p.critic_iters))
+        lines.append(_bullet_line("PRM score (if used)", p.prm_score))
         lines.append(_bullet_line("Stopped at max critic iterations", p.halted))
         if p.radar:
             lines.append(_bullet_line("Alignment risk (radar)", p.radar.get("alignment_risk")))
@@ -182,6 +186,9 @@ def render_compilation_report(
         lines.append(_bullet_line("API base URL", base if base else "(default)"))
         lines.append(_bullet_line("Temperature", settings.llm_temperature))
         lines.append(_bullet_line("Max critic iterations", settings.max_critic_iterations))
+        lines.append(_bullet_line("Critic use PRM", settings.critic_use_prm))
+        if settings.critic_use_prm:
+            lines.append(_bullet_line("PRM min score", settings.prm_min_score))
         lines.append("")
 
     lines.append("## Radar analysis")
@@ -196,6 +203,7 @@ def render_compilation_report(
     lines.append("")
     lines.append(_bullet_line("Passed", p.critic_passed))
     lines.append(_bullet_line("Iterations", p.critic_iters))
+    lines.append(_bullet_line("PRM score", p.prm_score))
     lines.append(_bullet_line("Halted at cap", p.halted))
     lines.append("")
     lines.append("### Latest feedback")

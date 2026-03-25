@@ -20,6 +20,24 @@ def test_author_trust_mode_defaults_true(monkeypatch: pytest.MonkeyPatch) -> Non
     assert get_settings().author_trust_mode is True
 
 
+def test_resolved_prm_model_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("LLM_MODEL", "main-model")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.resolved_prm_model() == "main-model"
+    monkeypatch.setenv("PRM_MODEL", "reward-model")
+    get_settings.cache_clear()
+    assert get_settings().resolved_prm_model() == "reward-model"
+
+
+def test_critic_use_prm_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("CRITIC_USE_PRM", "true")
+    get_settings.cache_clear()
+    assert get_settings().critic_use_prm is True
+
+
 def test_resolved_model_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.setenv("LLM_MODEL", "custom")

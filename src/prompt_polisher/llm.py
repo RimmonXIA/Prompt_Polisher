@@ -20,7 +20,13 @@ _TRANSPORT_BACKOFF_SEC = 1.5
 
 @runtime_checkable
 class LLMClient(Protocol):
-    def chat(self, messages: list[dict[str, str]], *, temperature: float | None = None) -> str: ...
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        model: str | None = None,
+    ) -> str: ...
 
 
 class OpenAICompatibleClient:
@@ -38,8 +44,15 @@ class OpenAICompatibleClient:
         self._client = OpenAI(**kwargs)
         self._model = settings.resolved_model()
 
-    def chat(self, messages: list[dict[str, str]], *, temperature: float | None = None) -> str:
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        model: str | None = None,
+    ) -> str:
         temp = self._settings.llm_temperature if temperature is None else temperature
+        resolved_model = model if model else self._model
         preview = None
         if self._settings.log_prompt_previews:
             preview = preview_text(str(messages))
@@ -53,7 +66,7 @@ class OpenAICompatibleClient:
         for transport_try in range(_TRANSPORT_ATTEMPTS):
             try:
                 resp = self._client.chat.completions.create(
-                    model=self._model,
+                    model=resolved_model,
                     messages=cast(Any, messages),
                     temperature=temp,
                 )
@@ -91,7 +104,13 @@ class FakeLLMClient:
     def __init__(self, responses: list[str]) -> None:
         self._responses = list(responses)
 
-    def chat(self, messages: list[dict[str, str]], *, temperature: float | None = None) -> str:
+    def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        model: str | None = None,
+    ) -> str:
         if not self._responses:
             msg = "FakeLLMClient has no scripted responses left"
             raise RuntimeError(msg)

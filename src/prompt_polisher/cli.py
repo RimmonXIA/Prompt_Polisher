@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="prompt-polisher", description="LLM prompt compiler CLI")
+    parser = argparse.ArgumentParser(
+        prog="prompt-polisher",
+        description=(
+            "LLM-backed heuristic prompt compiler (radar → route → compile → critic). "
+            "Does not guarantee task success, formal safety, or optimality; see docs/THEORY.zh.md."
+        ),
+    )
     parser.add_argument(
         "prompt",
         nargs="?",
@@ -82,6 +88,9 @@ def main(argv: list[str] | None = None) -> int:
             "model": settings.resolved_model(),
             "base_url": settings.resolved_base_url(),
             "max_critic_iterations": settings.max_critic_iterations,
+            "critic_use_prm": settings.critic_use_prm,
+            "prm_min_score": settings.prm_min_score,
+            "prm_model": settings.resolved_prm_model(),
         }
         print(json.dumps(payload, indent=2))
         return 0

@@ -6,6 +6,7 @@ from typing import Any
 
 from prompt_polisher.config import Settings
 from prompt_polisher.llm import LLMClient
+from prompt_polisher.prm import evaluate_process_reward
 from prompt_polisher.prompts_bundle import prompt_bundle
 from prompt_polisher.state import GraphState, OutputRoute
 from prompt_polisher.text import looks_like_injection, parse_json_object, preview_text
@@ -114,6 +115,22 @@ def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> dict[s
             "critic_iterations": iterations + 1,
         }
 
+    prm_score_val: float | None = None
+    if settings.critic_use_prm:
+        score, prm_note = evaluate_process_reward(llm, settings, draft, state["raw_prompt"])
+        if score is not None:
+            prm_score_val = score
+            if score < settings.prm_min_score:
+                detail = f"prm_low_score:{score:.3f}"
+                if prm_note:
+                    detail = f"{detail} ({prm_note})"
+                return {
+                    "critic_passed": False,
+                    "critic_feedback": detail,
+                    "critic_iterations": iterations + 1,
+                    "prm_score": score,
+                }
+
     bundle = prompt_bundle(settings)
     system = bundle.critic_system(settings.author_trust_mode)
     user = bundle.critic_user(draft, state["raw_prompt"])
@@ -124,15 +141,23 @@ def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> dict[s
         data = parse_json_object(text)
         passed = bool(data.get("pass"))
         feedback = str(data.get("feedback") or "")
-    except (json.JSONDecodeError, ValueError):
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.warning(
+            "critic returned invalid JSON or non-object: %s preview=%s",
+            exc,
+            preview_text(text, 400),
+        )
         passed = False
         feedback = "critic_json_parse_error"
 
-    return {
+    out: dict[str, Any] = {
         "critic_passed": passed,
         "critic_feedback": feedback,
         "critic_iterations": iterations + 1,
     }
+    if prm_score_val is not None:
+        out["prm_score"] = prm_score_val
+    return out
 
 
 def _pick_route(routing: dict[str, object]) -> OutputRoute:

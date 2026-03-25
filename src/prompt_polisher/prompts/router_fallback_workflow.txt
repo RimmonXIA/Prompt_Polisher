@@ -1,6 +1,7 @@
 # Workflow
 1. Clarify goal
 2. Decompose tasks
-3. Verify outputs
+3. Verify outputs (optionally: multi-sample consistency or a domain verifier if available)
+4. Final review
 
 $route

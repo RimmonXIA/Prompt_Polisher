@@ -4,9 +4,9 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**English.** Prompt Polisher is a **multi-node LangGraph workflow** that turns rough user intents into compiled prompts: radar → routing and anchoring → structured compile → critic loop, with optional multi-step blueprint and DSPy-style sketches. It is for builders who want stronger, safer prompts without hand-tuning every token. For the full architecture diagram and long-form Chinese theory, see [docs/THEORY.zh.md](docs/THEORY.zh.md).
+**English.** Prompt Polisher is a **multi-node LangGraph workflow** that turns rough user intents into compiled prompts: radar → routing and anchoring → structured compile → critic loop, with optional multi-step blueprint and DSPy-style sketches. It helps produce **heuristically** stronger, safer prompt text; **downstream task success and safety still depend on the model you run and your system design**, not on this CLI alone. For the full architecture diagram and long-form Chinese theory (including a reader guide and theory map), see [docs/THEORY.zh.md](docs/THEORY.zh.md).
 
-**中文.** Prompt Polisher 是基于 **LangGraph** 的多节点 Agentic 工作流：将原始需求经「意图雷达 → 算力/流形路由 → 结构化编译 → 红队 Critic 闭环」重组为更可执行的提示词与蓝图。完整架构图与长篇理论见 [docs/THEORY.zh.md](docs/THEORY.zh.md)。
+**中文.** Prompt Polisher 是基于 **LangGraph** 的多节点 Agentic 工作流：将原始需求经「意图雷达 → 算力/流形路由 → 结构化编译 → 红队 Critic 闭环」重组为更可执行的提示词与蓝图。完整架构图与长篇理论（含**导读**、**理论地图**与分层推导）见 [docs/THEORY.zh.md](docs/THEORY.zh.md)。
 
 ## Quickstart
 
@@ -25,9 +25,9 @@ uv run prompt-polisher --json "Your raw requirement"
 
 ## Theory and architecture
 
-**English.** The project treats prompt engineering as **structured intervention** on attention, compute (tokens and chain-of-thought), logits, and safety boundaries—not as a one-shot paraphrase. The four stages (radar, routing, compile, critic) implement that view end to end. The extended narrative (thirteen mechanism layers, formulas, and security discussion) lives in [docs/THEORY.zh.md](docs/THEORY.zh.md).
+**English.** The project treats prompt engineering as **structured intervention** on attention, compute (tokens and chain-of-thought), logits, and safety boundaries—not as a one-shot paraphrase. The four stages (radar, routing, compile, critic) implement that view end to end. Optionally set `CRITIC_USE_PRM=true` to run a **scalar process score** on the compiled draft before the text Critic (extra LLM call). The CLI outputs **text prompts only**; decoding knobs such as temperature, top-p, or logit masks are configured at **your downstream API**. **[docs/THEORY.zh.md](docs/THEORY.zh.md) is the sole canonical theory document for this repository** (reader guide, theory map, evidence labels, limits, primary references); it does **not** promise global optimality or universal safety for every model.
 
-**中文.** 项目将提示词工程视为对注意力、算力、Logits 与安全边界的**结构化数学干预**，而非单次润色。四步引擎在工程上对应雷达、路由、编译与红队审查；分层推导与公式详见 [docs/THEORY.zh.md](docs/THEORY.zh.md)。
+**中文.** 项目将提示词工程视为对注意力、算力、Logits 与安全边界的**结构化干预**（控制论式“最优”表述仅为类比），而非单次润色。四步引擎在工程上对应雷达、路由、编译与红队审查。**[docs/THEORY.zh.md](docs/THEORY.zh.md) 为本仓库理论表述的唯一权威来源**（导读、理论地图、证据等级、局限性与非承诺、英文 Primary 参考文献）；**不**承诺对任意模型的全局最优或普适安全保证。
 
 ```mermaid
 flowchart LR
@@ -67,7 +67,7 @@ uv sync --extra langfuse
 
 ### 配置
 
-将 [`.env.example`](.env.example) 复制为 `.env`，按需填写 `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`、`LLM_PROVIDER`、`MAX_CRITIC_ITERATIONS`、`AUTHOR_TRUST_MODE`、威胁闸门相关变量（`ABORT_ON_HEURISTIC_INJECTION`、`ABORT_ON_RADAR_HIGH`）等。Radar 之后若闸门触发，将 **不再** 执行路由/编译/Critic/Router，仅返回简短说明（`compilation_aborted`）。不要在仓库中提交真实密钥。
+将 [`.env.example`](.env.example) 复制为 `.env`，按需填写 `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`、`LLM_PROVIDER`、`MAX_CRITIC_ITERATIONS`、`AUTHOR_TRUST_MODE`、威胁闸门相关变量（`ABORT_ON_HEURISTIC_INJECTION`、`ABORT_ON_RADAR_HIGH`）等。可选：`CRITIC_USE_PRM=true` 时在进入文本 Critic 之前对 `draft` 做一次 **过程式标量打分**（额外一次 LLM 调用，默认关闭）；`PRM_MODEL`、`PRM_MIN_SCORE`、`PRM_TEMPERATURE` 见 `.env.example`。本 CLI **只产出文本型 prompt**；**temperature / top-p / logits 掩码** 等解码参数由你在调用最终模型时的 API 侧配置。Radar 之后若闸门触发，将 **不再** 执行路由/编译/Critic/Router，仅返回简短说明（`compilation_aborted`）。不要在仓库中提交真实密钥。
 
 ### 命令行
 
@@ -108,6 +108,14 @@ uv run ruff check src tests
 uv run mypy src
 ```
 
+可选（需网络）：检查 [docs/THEORY.zh.md](docs/THEORY.zh.md) 中参考文献 URL（先 HEAD，必要时 GET）：
+
+```bash
+uv run python scripts/check_theory_urls.py
+# 仅列出 URL、不访问网络：
+uv run python scripts/check_theory_urls.py --list-only
+```
+
 ### 实现映射（理论节点 → 代码）
 
 | 架构节点 | 主要实现 |
@@ -115,10 +123,12 @@ uv run mypy src
 | Node 1：意图解构与对齐雷达 | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) 中 `node_radar`；注入启发式见 [`src/prompt_polisher/text.py`](src/prompt_polisher/text.py) |
 | Node 2：算力调度与流形寻址 | `node_routing` |
 | Node 3：结构化编译 | `node_compile` |
-| Node 4：闭环红队审查 | `node_critic`（含规则前置检查） |
+| Node 4：闭环红队审查 | `node_critic`（规则前置；可选 `CRITIC_USE_PRM` 过程打分后再走文本 Critic） |
 | 输出路由与三态产物 | `node_router`；编排与 Critic 回路见 [`src/prompt_polisher/graph.py`](src/prompt_polisher/graph.py) |
 | 全局状态 | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) 中 `GraphState` |
 | 配置与 LLM | [`src/prompt_polisher/config.py`](src/prompt_polisher/config.py)、[`src/prompt_polisher/llm.py`](src/prompt_polisher/llm.py) |
+| 可选过程打分（PRM 式） | [`src/prompt_polisher/prm.py`](src/prompt_polisher/prm.py) |
+| 命令行入口 | [`src/prompt_polisher/cli.py`](src/prompt_polisher/cli.py) |
 | 日志 | [`src/prompt_polisher/logging_config.py`](src/prompt_polisher/logging_config.py) |
 | 可选 Langfuse | [`src/prompt_polisher/observability.py`](src/prompt_polisher/observability.py)（`LANGFUSE_TRACING=true` 且安装 `langfuse` 时） |
 

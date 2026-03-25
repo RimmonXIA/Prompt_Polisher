@@ -17,23 +17,32 @@ class CountingFakeLLM(FakeLLMClient):
         messages: list[dict[str, str]],
         *,
         temperature: float | None = None,
+        model: str | None = None,
     ) -> str:
         self.chat_calls += 1
-        return super().chat(messages, temperature=temperature)
+        return super().chat(messages, temperature=temperature, model=model)
 
 
-def _happy_path_responses() -> list[str]:
-    return [
-        '{"negations_flipped":"Do X clearly","threats":[],"alignment_risk":"low","summary":"ok"}',
-        '{"complexity":"low","multi_node_recommended":false,'
-        '"anchor_persona":"expert","rationale":"simple"}',
+def _happy_path_responses(*, with_prm: bool = False) -> list[str]:
+    compile_out = (
         '{"draft":"'
         "<thinking>reason step by step</thinking>"
         "<user_context>user</user_context>"
         "Please answer with clarity and structure."
-        '"}',
+        '"}'
+    )
+    tail = [
         '{"pass":true,"feedback":"","issues":[]}',
         '{"final_prompt":"FINAL_PROMPT","workflow_blueprint":"WF","dspy_sketch":"DSPY"}',
+    ]
+    if with_prm:
+        tail = ['{"score":0.95,"note":""}', *tail]
+    return [
+        '{"negations_flipped":"Do X clearly","threats":[],"alignment_risk":"low","summary":"ok"}',
+        '{"complexity":"low","multi_node_recommended":false,'
+        '"anchor_persona":"expert","rationale":"simple"}',
+        compile_out,
+        *tail,
     ]
 
 
@@ -104,3 +113,19 @@ def test_conditional_routing_to_compile(monkeypatch: pytest.MonkeyPatch) -> None
     out = app.invoke({"raw_prompt": "hello"})
     assert out.get("critic_passed") is True
     assert int(out.get("critic_iterations") or 0) >= 2
+
+
+def test_build_graph_with_prm_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("MAX_CRITIC_ITERATIONS", "2")
+    monkeypatch.setenv("CRITIC_USE_PRM", "true")
+    monkeypatch.setenv("PRM_MIN_SCORE", "0.5")
+    get_settings.cache_clear()
+    settings = get_settings()
+    assert settings.critic_use_prm is True
+    llm = CountingFakeLLM(_happy_path_responses(with_prm=True))
+    out = run_compiler("hello world", settings, llm)
+    assert out.get("final_prompt") == "FINAL_PROMPT"
+    assert out.get("critic_passed") is True
+    assert out.get("prm_score") == pytest.approx(0.95)
+    assert llm.chat_calls == len(_happy_path_responses(with_prm=True))

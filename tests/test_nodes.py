@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from prompt_polisher.config import get_settings
@@ -24,6 +26,22 @@ def test_node_radar_merges_injection_flag(monkeypatch: pytest.MonkeyPatch) -> No
     out = node_radar(state, llm, settings)  # type: ignore[arg-type]
     threats = out["radar_analysis"]["threats"]
     assert "possible_prompt_injection" in threats
+
+
+def test_node_critic_invalid_json_logs_warning(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    get_settings.cache_clear()
+    settings = get_settings()
+    llm = FakeLLMClient(["not valid json for critic"])
+    draft = "<thinking>t</thinking><user_context>u</user_context>" + "x" * 30
+    with caplog.at_level(logging.WARNING):
+        out = node_critic({"raw_prompt": "r", "draft": draft}, llm, settings)  # type: ignore[arg-type]
+    assert out["critic_passed"] is False
+    assert out["critic_feedback"] == "critic_json_parse_error"
+    assert "preview=" in caplog.text
 
 
 def test_node_critic_rule_fail_short_draft(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -64,6 +82,39 @@ def test_node_routing_parses_json(monkeypatch: pytest.MonkeyPatch) -> None:
     state = {"raw_prompt": "q", "radar_analysis": {"summary": "s"}}
     out = node_routing(state, llm, settings)  # type: ignore[arg-type]
     assert out["routing_decision"]["multi_node_recommended"] is True
+
+
+def test_node_critic_prm_rejects_low_score(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("CRITIC_USE_PRM", "true")
+    monkeypatch.setenv("PRM_MIN_SCORE", "0.5")
+    get_settings.cache_clear()
+    settings = get_settings()
+    llm = FakeLLMClient(['{"score":0.2,"note":"weak draft"}'])
+    draft = "<thinking>t</thinking><user_context>u</user_context>" + "x" * 30
+    state = {"raw_prompt": "orig", "draft": draft}
+    out = node_critic(state, llm, settings)  # type: ignore[arg-type]
+    assert out["critic_passed"] is False
+    assert "prm_low_score" in str(out["critic_feedback"])
+    assert out.get("prm_score") == pytest.approx(0.2)
+
+
+def test_node_critic_prm_passes_then_llm_critic(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("CRITIC_USE_PRM", "true")
+    get_settings.cache_clear()
+    settings = get_settings()
+    llm = FakeLLMClient(
+        [
+            '{"score":0.9,"note":""}',
+            '{"pass":true,"feedback":"ok","issues":[]}',
+        ],
+    )
+    draft = "<thinking>t</thinking><user_context>u</user_context>" + "x" * 30
+    state = {"raw_prompt": "orig", "draft": draft}
+    out = node_critic(state, llm, settings)  # type: ignore[arg-type]
+    assert out["critic_passed"] is True
+    assert out.get("prm_score") == pytest.approx(0.9)
 
 
 def test_node_compile_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
