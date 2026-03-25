@@ -1,0 +1,1 @@
+Design an end-to-end research assistant: ingest PDFs from S3, chunk + embed, retrieve citations, draft a report, run a separate fact-check agent, then human approval gate — output only the orchestration spec and API contracts.

@@ -1,0 +1,1 @@
+Summarize this repository for a public release note: audience is developers who skim READMEs. Keep it under 200 words, bullet the main workflow stages, and mention that outputs are text-only (no in-process logits control).

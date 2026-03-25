@@ -1,0 +1,38 @@
+{
+  "summary": {
+    "compilation_aborted": true,
+    "abort_reason": "heuristic_injection",
+    "abort_detail": "Synthetic sample — gate triggered; no route/compile/critic ran.",
+    "output_route": null,
+    "critic_passed": null,
+    "critic_iterations": null,
+    "critic_halted_max": null,
+    "alignment_risk": "high",
+    "threats": ["prompt_injection_pattern"],
+    "complexity": null,
+    "multi_node_recommended": null
+  },
+  "before_after": null,
+  "settings": null,
+  "radar_analysis": {
+    "task_type": "unknown",
+    "alignment_risk": "high",
+    "threats": ["prompt_injection_pattern"],
+    "notes": "Synthetic abort example."
+  },
+  "routing_decision": {},
+  "critic": {
+    "passed": null,
+    "iterations": null,
+    "halted_at_max": null,
+    "feedback": "",
+    "prm_score": null
+  },
+  "draft": "",
+  "deliverables": {
+    "output_route": null,
+    "final_prompt": "",
+    "workflow_blueprint": "",
+    "dspy_sketch": ""
+  }
+}

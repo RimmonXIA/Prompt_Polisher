@@ -33,12 +33,12 @@ uv run mypy src
 
 Optional (needs network): verify reference URLs in [docs/THEORY.zh.md](docs/THEORY.zh.md) with `uv run python scripts/check_theory_urls.py` (use `--list-only` to skip HTTP).
 
-CI runs the same steps with `uv sync --frozen` (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+CI runs the same steps with `uv sync --frozen` on **Python 3.11 and 3.12**; `pytest` is configured with **`--cov-fail-under=70`** (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ## Pull requests
 
 - Keep changes focused on a single concern when possible.
-- Update the README or [docs/THEORY.zh.md](docs/THEORY.zh.md) if user-facing behavior or theory claims change.
+- Update the README, [docs/THEORY.zh.md](docs/THEORY.zh.md), and (if scope or non-claims change) [docs/THEORY.en.md](docs/THEORY.en.md) or [examples/](examples/) when user-facing behavior or theory claims change.
 - Do not commit secrets (`.env`, API keys, tokens).
 
 ## Code of conduct

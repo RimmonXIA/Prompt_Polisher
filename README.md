@@ -4,9 +4,9 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**English.** Prompt Polisher is a **multi-node LangGraph workflow** that turns rough user intents into compiled prompts: radar → routing and anchoring → structured compile → critic loop, with optional multi-step blueprint and DSPy-style sketches. It helps produce **heuristically** stronger, safer prompt text; **downstream task success and safety still depend on the model you run and your system design**, not on this CLI alone. For the full architecture diagram and long-form Chinese theory (including a reader guide and theory map), see [docs/THEORY.zh.md](docs/THEORY.zh.md).
+**English.** Prompt Polisher is a **multi-node LangGraph workflow** that turns rough user intents into compiled prompts: radar → routing and anchoring → structured compile → critic loop, with optional multi-step blueprint and DSPy-style sketches. It helps produce **heuristically** stronger, safer prompt text; **downstream task success and safety still depend on the model you run and your system design**, not on this CLI alone. **Full theory is in Chinese:** [docs/THEORY.zh.md](docs/THEORY.zh.md) (canonical: diagram, theory map, evidence grades, limits, references). **English bridge** (~10–15 min): scope, non-claims, when *not* to use, related work — [docs/THEORY.en.md](docs/THEORY.en.md).
 
-**中文.** Prompt Polisher 是基于 **LangGraph** 的多节点 Agentic 工作流：将原始需求经「意图雷达 → 算力/流形路由 → 结构化编译 → 红队 Critic 闭环」重组为更可执行的提示词与蓝图。完整架构图与长篇理论（含**导读**、**理论地图**与分层推导）见 [docs/THEORY.zh.md](docs/THEORY.zh.md)。
+**中文.** Prompt Polisher 是基于 **LangGraph** 的多节点 Agentic 工作流：将原始需求经「意图雷达 → 算力/流形路由 → 结构化编译 → 红队 Critic 闭环」重组为更可执行的提示词与蓝图。完整架构图与长篇理论（含**导读**、**理论地图**与分层推导）见 [docs/THEORY.zh.md](docs/THEORY.zh.md)；英文短导读见 [docs/THEORY.en.md](docs/THEORY.en.md)。
 
 ## Quickstart
 
@@ -23,11 +23,13 @@ uv run prompt-polisher "Summarize this repository for a release note."
 uv run prompt-polisher --json "Your raw requirement"
 ```
 
+**Examples.** Redacted / synthetic inputs and report shapes (`--markdown` / `--report-json`) live under [examples/](examples/).
+
 ## Theory and architecture
 
-**English.** The project treats prompt engineering as **structured intervention** on attention, compute (tokens and chain-of-thought), logits, and safety boundaries—not as a one-shot paraphrase. The main chain is radar → (optional gate) → routing → compile (system prompt includes **§2.5-style ICL/few-shot guidance embedded in the `draft` text**) → critic. Optionally set `CRITIC_USE_PRM=true` to run a **scalar process score** on the compiled draft before the text Critic (extra LLM call). The CLI outputs **text prompts only**; decoding knobs such as temperature, top-p, or logit masks are configured at **your downstream API**. **[docs/THEORY.zh.md](docs/THEORY.zh.md) is the sole canonical theory document for this repository** (diagram notes, implementation-scope table, theory map, evidence labels, limits, primary references); it does **not** promise global optimality or universal safety for every model.
+**English.** The project treats prompt engineering as **structured intervention** on attention, compute (tokens and chain-of-thought), logits, and safety boundaries—not as a one-shot paraphrase. The main chain is radar → (optional gate) → routing → compile (system prompt includes **§2.5-style ICL/few-shot guidance embedded in the `draft` text**) → critic. Optionally set `CRITIC_USE_PRM=true` to run a **scalar process score** on the compiled draft before the text Critic (extra LLM call). The CLI outputs **text prompts only**; decoding knobs such as temperature, top-p, or logit masks are configured at **your downstream API**. **[docs/THEORY.zh.md](docs/THEORY.zh.md) is the sole canonical theory document** (diagram notes, implementation-scope table, theory map, evidence labels, limits, primary references); it does **not** promise global optimality or universal safety for every model. For an English summary of scope and positioning, see **[docs/THEORY.en.md](docs/THEORY.en.md)**.
 
-**中文.** 项目将提示词工程视为对注意力、算力、Logits 与安全边界的**结构化干预**（控制论式“最优”表述仅为类比），而非单次润色。主链为雷达 →（可选闸门）→ 路由 → 编译（含 **§2.5 式 ICL/few-shot 写入 `draft` 的提示指引**）→ 红队 Critic。**[docs/THEORY.zh.md](docs/THEORY.zh.md) 为本仓库理论表述的唯一权威来源**（架构图注、实现范围表、理论地图、证据等级、局限性与非承诺、英文 Primary 参考文献）；**不**承诺对任意模型的全局最优或普适安全保证。
+**中文.** 项目将提示词工程视为对注意力、算力、Logits 与安全边界的**结构化干预**（控制论式“最优”表述仅为类比），而非单次润色。主链为雷达 →（可选闸门）→ 路由 → 编译（含 **§2.5 式 ICL/few-shot 写入 `draft` 的提示指引**）→ 红队 Critic。**[docs/THEORY.zh.md](docs/THEORY.zh.md) 为本仓库理论表述的唯一权威来源**（架构图注、实现范围表、理论地图、证据等级、局限性与非承诺、英文 Primary 参考文献）；**不**承诺对任意模型的全局最优或普适安全保证。英文短导读见 [docs/THEORY.en.md](docs/THEORY.en.md)。
 
 ```mermaid
 flowchart LR
@@ -135,6 +137,6 @@ uv run python scripts/check_theory_urls.py --list-only
 
 **LangSmith**：按 `.env.example` 设置 `LANGCHAIN_TRACING_V2`、`LANGCHAIN_API_KEY`、`LANGCHAIN_PROJECT` 等；CLI 在启动时会调用 `Settings.apply_langchain_env()`，由 LangChain/LangGraph 在运行时读取这些环境变量（无需在本仓库内再写一层封装）。
 
-CI 使用 GitHub Actions（`uv sync --frozen`、ruff、mypy、pytest），见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
+CI 使用 GitHub Actions（`uv sync --frozen`、ruff、mypy、pytest；**Python 3.11 与 3.12 矩阵**；pytest 覆盖率不低于 70%），见 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
 
 **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md). **Security:** see [SECURITY.md](SECURITY.md). **Code of conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

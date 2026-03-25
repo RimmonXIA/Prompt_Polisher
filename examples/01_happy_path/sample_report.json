@@ -1,0 +1,44 @@
+{
+  "summary": {
+    "compilation_aborted": false,
+    "abort_reason": null,
+    "abort_detail": null,
+    "output_route": "instance",
+    "critic_passed": true,
+    "critic_iterations": 1,
+    "critic_halted_max": false,
+    "alignment_risk": "low",
+    "threats": [],
+    "complexity": "medium",
+    "multi_node_recommended": false
+  },
+  "before_after": null,
+  "settings": null,
+  "radar_analysis": {
+    "task_type": "documentation",
+    "alignment_risk": "low",
+    "threats": [],
+    "positive_reframe": "Produce a concise developer-facing release summary with explicit workflow bullets.",
+    "notes": "Synthetic sample for schema illustration."
+  },
+  "routing_decision": {
+    "complexity": "medium",
+    "multi_node_recommended": false,
+    "anchor_persona": "Senior technical writer",
+    "reasoning_budget": "single_pass_with_light_cot"
+  },
+  "critic": {
+    "passed": true,
+    "iterations": 1,
+    "halted_at_max": false,
+    "feedback": "PASS — structure and safety notes present (sample).",
+    "prm_score": null
+  },
+  "draft": "<task>…redacted draft XML body…</task>",
+  "deliverables": {
+    "output_route": "instance",
+    "final_prompt": "You are assisting with release communications. [… redacted …]",
+    "workflow_blueprint": "Optional follow-up: multi-step changelog pipeline if scope grows.",
+    "dspy_sketch": "# Pseudocode sketch only\n"
+  }
+}
