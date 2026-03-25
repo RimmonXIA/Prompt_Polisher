@@ -1,0 +1,1 @@
+Apply a stricter safety bar when drafts could enable policy violations; still keep pass and feedback logically consistent.

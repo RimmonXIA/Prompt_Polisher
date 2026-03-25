@@ -1,0 +1,1 @@
+When radar indicates elevated risk, you may add stronger defensive framing while still preserving any safe task content inside <user_context> when possible.

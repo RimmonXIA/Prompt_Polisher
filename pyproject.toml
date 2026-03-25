@@ -1,0 +1,87 @@
+[project]
+name = "prompt-polisher"
+version = "0.1.0"
+description = "Multi-node agentic prompt compiler (LLM-as-compiler workflow)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = [
+    "prompt-engineering",
+    "langgraph",
+    "llm",
+    "compiler",
+    "agent",
+    "openai",
+    "deepseek",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "httpx>=0.27.0",
+    "openai>=1.54.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "langgraph>=0.2.50",
+    "langchain-core>=0.3.20",
+]
+
+[project.optional-dependencies]
+langfuse = ["langfuse>=2.54.0"]
+
+[project.scripts]
+prompt-polisher = "prompt_polisher.cli:main"
+prompt-polisher-langfuse-check = "prompt_polisher.langfuse_check:main"
+
+[project.urls]
+Homepage = "https://github.com/RimmonXIA/Prompt_Polisher"
+Repository = "https://github.com/RimmonXIA/Prompt_Polisher"
+Issues = "https://github.com/RimmonXIA/Prompt_Polisher/issues"
+
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+prompt_polisher = ["prompts/*.txt"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+mypy_path = "src"
+packages = ["prompt_polisher"]
+
+[[tool.mypy.overrides]]
+module = ["langfuse", "langfuse.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=prompt_polisher --cov-report=term-missing"

@@ -1,0 +1,3 @@
+Compilation was stopped by the threat gate after Radar. Routing, compile, critic, and router stages were not run.
+Reason code: $reason
+No optimized prompt was produced.

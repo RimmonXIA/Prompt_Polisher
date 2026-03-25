@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security advisories
+    url: https://github.com/RimmonXIA/Prompt_Polisher/security
+    about: Report security issues privately (see SECURITY.md).

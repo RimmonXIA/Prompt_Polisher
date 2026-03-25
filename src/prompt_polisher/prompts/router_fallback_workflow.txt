@@ -1,0 +1,6 @@
+# Workflow
+1. Clarify goal
+2. Decompose tasks
+3. Verify outputs
+
+$route

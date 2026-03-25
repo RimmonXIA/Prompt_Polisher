@@ -1,0 +1,4 @@
+Raw user request:
+$raw
+
+Heuristic injection flag: $heuristic_injection

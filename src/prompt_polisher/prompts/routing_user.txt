@@ -1,0 +1,5 @@
+Radar analysis JSON:
+$radar_json
+
+Original:
+$original
