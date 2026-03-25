@@ -2,7 +2,7 @@
 
 **真值声明：** 本仓库内凡涉及架构叙事、分层干预机制、证据等级、局限性与非承诺的**理论表述**，均以**本文**为唯一权威来源；实现代码与 prompts 不应与本文矛盾。其它路径若曾存在与审计相关的备忘，均已废弃，不再维护。
 
-下图与代码中的 **Radar → Route → Compile → Critic → Router** 一致；图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)。
+主链与代码一致：**Radar → ThreatGate（可选）→ Route → Compile → Critic → Router**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Router 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
 
 ## 架构
 
@@ -14,6 +14,7 @@ graph TD
     classDef critic fill:#ffebee,stroke:#f44336,stroke-width:2px;
     classDef routing fill:#fff3e0,stroke:#ff9800,stroke-width:2px,stroke-dasharray: 5 5;
     classDef theory fill:#f1f8e9,stroke:#8bc34a,stroke-width:1px,stroke-dasharray: 3 3;
+    classDef gate fill:#eceff1,stroke:#546e7a,stroke-width:2px;
 
     %% 输入
     Input(["用户输入 RawPrompt"])
@@ -53,13 +54,15 @@ graph TD
 
     %% 流程连接
     Input -->|注入全局 State| N1
-    N1 -->|传递分析结果 & 威胁等级| N2
+    N1 -->|雷达 JSON| Gate{"ThreatGate<br>可选提前终止"}
+    Gate -->|继续| N2
+    Gate -->|中止| Abort(["提前终止<br>不进入后续节点"])
     N2 -->|下发算力分配 & 锚点策略| N3
     N3 -->|生成草稿 Draft| N4
     
     %% 路由循环
     N4 -->|FAIL: 检出致命缺陷/逃逸漏洞| N3
-    N4 -->|PASS: 符合设计与安全约束| Router(("logits 截断<br>& 输出路由"))
+    N4 -->|PASS: 符合设计与安全约束| Router(("输出路由<br>文本制品分岔"))
 
     %% 分发
     Router -->|Instance / Template| Output1
@@ -71,12 +74,32 @@ graph TD
     Router -.- T_Logits
 
     %% 应用样式
-    class Input,Output1,Output2,Output3 inputOutput;
+    class Input,Output1,Output2,Output3,Abort inputOutput;
     class N1,N2,N3 node;
     class N4 critic;
+    class Gate gate;
     class Router routing;
     class T1,T2,T3,T4,T_Logits theory;
 ```
+
+### 图注与实现边界
+
+- **ThreatGate**：与实现中 Radar 之后的威胁闸门一致（配置项与启发式/雷达信号决定是否**跳过** Route、Compile、Critic、Router）；触发时进入提前终止路径，仅输出中止说明类制品。
+- **Router 节点**：本仓库实现侧为 **文本级** 输出路由与制品（如最终 prompt、工作流蓝图、DSPy 式草图）；**logits 硬截断、温度、top-p** 等属于 **§3** 所述**下游调用模型时的解码栈**，见 [局限性与非承诺声明](#局限性与非承诺声明) 第 3 条。
+- **T_Logits（虚线）**：表示完整理论中的 **§3.6** 机制示意，**不**表示本 CLI 内已集成约束解码库；与 Router 的并列便于从理论地图阅读，避免将「图上的 Router」误读为「已在包内做 logits 工程」。
+
+### 本仓库实现范围（对照理论地图）
+
+| 理论地图关切 | 本仓库内（LangGraph、规则、内置 prompts） | 主要在文献、下游或系统层 |
+| --- | --- | --- |
+| §1 输入、U 型/RAG 限定、否定、Persona | Radar 正向化；Compile 提示中的**条件性**首尾/长上下文指引；`user_context` 等隔离叙事 | RULER 系评测、Cuconasu 式 RAG 再评估的**完整复现** |
+| §2 CoT、ICL、测试时算力 | `<thinking>` 与 Compile 内 **ICL/few-shot** 指引（写入 `draft` 文本）；Routing 判复杂度；Router 文案可建议 Self-Consistency 等 | 多轨迹采样与聚合的**执行器**；权重内 ICL 的普遍结论 |
+| §3 logits、采样 | 无：CLI **只产出文本**；README 要求用户在最终 API 配置解码 | Outlines 等约束解码实现 |
+| §4 闭环、PRM | Critic↔Compile 回路；可选 PRM 标量门控 | 解码器内验证器搜索栈 |
+| §5 锚点/流形隐喻 | `anchor_persona` 与措辞建议 | 可测几何「投影」 |
+| §6 对齐、误拒 | Radar `alignment_risk` 与闸门策略 | 部署策略与 RM 细节 |
+| §7 软提示、DSPy | `dspy_sketch` 文本草图 | P-Tuning 训练、可运行 DSPy 流水线 |
+| §8 注入、越狱、深度防御 | 启发式与 Radar JSON、XML 闭合等浅层规则 | CaMeL 式架构隔离、自适应攻击基准闭环 |
 
 ## 理论地图
 
@@ -124,10 +147,12 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 
 * **步骤 1：意图解构与对齐雷达 (Radar)**
     剥离所有的负向表述并强制转化为正向特征；同时作为一个安全雷达，嗅探任务是否会触发模型的“对齐拦截”，或者是否存在外部变量注入的风险。
+* **（可选）威胁闸门 (ThreatGate)**  
+    Radar 之后若满足配置与风险条件，可**提前终止**流水线，不进入后续路由/编译/Critic/Router；与架构图中 `ThreatGate` 分支一致，用于在极高风险场景下避免继续放大不可信输入。
 * **步骤 2：架构裁决与流形寻址 (Routing & Anchoring)**
     计算任务复杂度，突破“单次调用”思维。如果任务超出了单次前向传播的算力极限，引擎会直接建议将其拆解为多节点的 AI 工作流；同时给出**角色与风格锚定**建议，以在经验上提高指令清晰度与输出一致性（“流形/召唤”为 **Analogy**，见 §5.9）。
 * **步骤 3：结构化机制向编译 (Compiling)**
-    按照底层约束进行文本的结构化组装。强制执行首尾强化（对抗注意力衰减）、XML 沙盒隔离（防御外部变量劫持）、以及注入 `<thinking>` 标签（强制用序列长度换取推理算力）。
+    按照底层约束进行文本的结构化组装。强制执行首尾强化（对抗注意力衰减）、XML 沙盒隔离（防御外部变量劫持）、注入 `<thinking>` 标签（用序列长度换取推理算力的经验做法），并在需要时用 **少样本示范（ICL）** 块对齐输出形态（见 §2.5；实现上写入 `draft` 文本，而非单独 JSON 字段）。
 * **步骤 4：闭环红队审查 (Critic)**
     系统内置一个严苛的“红队审查员”。如果上一步生成的提示词未能遵守上述设计与安全约束，审查员会将其阻断并打回重置，在离散文本空间上**启发式重采样**，迭代改进（**Analogy**：可类比为离散空间中的近似优化，**非**可证的全局最优）。
 
@@ -369,7 +394,7 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 
 ## 总结
 
-**一句收束**：固定权重下，提示词是对 **注意力、算力、logits、对齐边界** 的**分层、可迭代干预**；本项目用四节点流水线**产品化**，并以证据等级区分实证、机制叙述、类比与推测（详见 [局限性与非承诺声明](#局限性与非承诺声明)）。
+**一句收束**：固定权重下，提示词是对 **注意力、算力、logits、对齐边界** 的**分层、可迭代干预**；本项目以 **四节点主链**（Radar 后**可选**威胁闸门）将核心叙事**产品化**，并以证据等级区分实证、机制叙述、类比与推测（详见 [局限性与非承诺声明](#局限性与非承诺声明)）。
 
 **八层与理论地图同构**（证据强度见各 **§m.n**）：输入（RAG/位置、RULER 系评测、Persona、否定失效）→ 计算（CoT、ICL、测试时算力与 Self-Consistency）→ 输出采样（掩码、温度/top-p/top-k）→ 闭环（Critic 式重试、验证器引导搜索）→ 隐喻寻址（流形/锚点）→ 对齐（RLHF/DPO、误拒）→ 自动化（软提示、DSPy）→ 对抗（注入/越狱；**防御**靠系统层与实证评测而非单模板）。
 

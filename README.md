@@ -25,9 +25,9 @@ uv run prompt-polisher --json "Your raw requirement"
 
 ## Theory and architecture
 
-**English.** The project treats prompt engineering as **structured intervention** on attention, compute (tokens and chain-of-thought), logits, and safety boundaries—not as a one-shot paraphrase. The four stages (radar, routing, compile, critic) implement that view end to end. Optionally set `CRITIC_USE_PRM=true` to run a **scalar process score** on the compiled draft before the text Critic (extra LLM call). The CLI outputs **text prompts only**; decoding knobs such as temperature, top-p, or logit masks are configured at **your downstream API**. **[docs/THEORY.zh.md](docs/THEORY.zh.md) is the sole canonical theory document for this repository** (reader guide, theory map, evidence labels, limits, primary references); it does **not** promise global optimality or universal safety for every model.
+**English.** The project treats prompt engineering as **structured intervention** on attention, compute (tokens and chain-of-thought), logits, and safety boundaries—not as a one-shot paraphrase. The main chain is radar → (optional gate) → routing → compile (system prompt includes **§2.5-style ICL/few-shot guidance embedded in the `draft` text**) → critic. Optionally set `CRITIC_USE_PRM=true` to run a **scalar process score** on the compiled draft before the text Critic (extra LLM call). The CLI outputs **text prompts only**; decoding knobs such as temperature, top-p, or logit masks are configured at **your downstream API**. **[docs/THEORY.zh.md](docs/THEORY.zh.md) is the sole canonical theory document for this repository** (diagram notes, implementation-scope table, theory map, evidence labels, limits, primary references); it does **not** promise global optimality or universal safety for every model.
 
-**中文.** 项目将提示词工程视为对注意力、算力、Logits 与安全边界的**结构化干预**（控制论式“最优”表述仅为类比），而非单次润色。四步引擎在工程上对应雷达、路由、编译与红队审查。**[docs/THEORY.zh.md](docs/THEORY.zh.md) 为本仓库理论表述的唯一权威来源**（导读、理论地图、证据等级、局限性与非承诺、英文 Primary 参考文献）；**不**承诺对任意模型的全局最优或普适安全保证。
+**中文.** 项目将提示词工程视为对注意力、算力、Logits 与安全边界的**结构化干预**（控制论式“最优”表述仅为类比），而非单次润色。主链为雷达 →（可选闸门）→ 路由 → 编译（含 **§2.5 式 ICL/few-shot 写入 `draft` 的提示指引**）→ 红队 Critic。**[docs/THEORY.zh.md](docs/THEORY.zh.md) 为本仓库理论表述的唯一权威来源**（架构图注、实现范围表、理论地图、证据等级、局限性与非承诺、英文 Primary 参考文献）；**不**承诺对任意模型的全局最优或普适安全保证。
 
 ```mermaid
 flowchart LR
@@ -121,6 +121,7 @@ uv run python scripts/check_theory_urls.py --list-only
 | 架构节点 | 主要实现 |
 | --- | --- |
 | Node 1：意图解构与对齐雷达 | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) 中 `node_radar`；注入启发式见 [`src/prompt_polisher/text.py`](src/prompt_polisher/text.py) |
+| ThreatGate：雷达后可选提前终止 | [`src/prompt_polisher/gate.py`](src/prompt_polisher/gate.py)（`should_abort_after_radar`、`node_early_abort`）；编排见 [`src/prompt_polisher/graph.py`](src/prompt_polisher/graph.py) |
 | Node 2：算力调度与流形寻址 | `node_routing` |
 | Node 3：结构化编译 | `node_compile` |
 | Node 4：闭环红队审查 | `node_critic`（规则前置；可选 `CRITIC_USE_PRM` 过程打分后再走文本 Critic） |
