@@ -4,6 +4,10 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+**TL;DR (English).** **Python 3.11+ CLI**: a **LangGraph** multi-node **prompt compiler**—radar → optional **threat gate** → routing → structured compile → **critic** loop—plus blueprint and DSPy-style sketches; use **`--envelope`** / **`--report-json`** for agents and automation; **OpenAI**- or **DeepSeek**-compatible backends via `LLM_PROVIDER`.
+
+**一句话（中文）。** **Python 命令行工具**（3.11+）：基于 **LangGraph** 的多节点**提示词编译**流水线（意图雷达 → 可选威胁闸门 → 路由 → 编译 → **Critic**），支持 **`--envelope` / `--report-json`** 供 Agent 与自动化消费；理论长文见下文链接。
+
 **English.** Prompt Polisher is a **multi-node LangGraph workflow** that turns rough user intents into compiled prompts: radar → routing and anchoring → structured compile → critic loop, with optional multi-step blueprint and DSPy-style sketches. It helps produce **heuristically** stronger, safer prompt text; **downstream task success and safety still depend on the model you run and your system design**, not on this CLI alone. **Full theory is in Chinese:** [docs/THEORY.zh.md](docs/THEORY.zh.md) (canonical: diagram, theory map, evidence grades, limits, references). **English bridge** (~10–15 min): scope, non-claims, when *not* to use, related work — [docs/THEORY.en.md](docs/THEORY.en.md).
 
 **中文.** Prompt Polisher 是基于 **LangGraph** 的多节点 Agentic 工作流：将原始需求经「意图雷达 → 算力/流形路由 → 结构化编译 → 红队 Critic 闭环」重组为更可执行的提示词与蓝图。完整架构图与长篇理论（含**导读**、**理论地图**与分层推导）见 [docs/THEORY.zh.md](docs/THEORY.zh.md)；英文短导读见 [docs/THEORY.en.md](docs/THEORY.en.md)。

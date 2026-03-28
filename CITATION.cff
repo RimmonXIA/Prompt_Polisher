@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: Prompt Polisher
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - name: RimmonXIA
+repository-code: "https://github.com/RimmonXIA/Prompt_Polisher"
+license: MIT
+abstract: >-
+  Python CLI: LangGraph multi-node workflow that compiles raw user intents into
+  structured prompts (radar, optional threat gate, routing, compile, critic),
+  with JSON outputs for agents and automation.
+year: 2025

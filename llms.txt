@@ -1,0 +1,21 @@
+# Prompt Polisher
+
+> Open-source **Python 3.11+ CLI** that runs a **LangGraph** workflow to compile rough user intents into structured prompts: radar → optional threat gate → routing → compile → critic → deliverables (final prompt, blueprint, DSPy-style sketch). Outputs plain text; use **`--report-json`** or **`--envelope`** / **`--agent`** for structured, agent-friendly JSON. Canonical theory (Chinese) and an English bridge live under `docs/`. **Downstream success and safety depend on your model and system design**, not this tool alone.
+
+## Start here
+
+- [README.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/README.md) — Quickstart, badges, architecture diagram, developer setup, **Agents and automation** (CLI protocol, exit codes, envelope schema).
+
+## Theory and scope
+
+- [docs/THEORY.en.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.en.md) — Short English bridge: claims, non-claims, pipeline aligned with code.
+- [docs/THEORY.zh.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.zh.md) — Canonical long-form theory (diagram notes, theory map, evidence grades, limits, references).
+
+## Examples
+
+- [examples/README.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/examples/README.md) — Sample inputs and report shapes (`--markdown`, `--report-json`).
+
+## Contributing and security
+
+- [CONTRIBUTING.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/CONTRIBUTING.md) — Local setup, checks before PR, repository metadata hints for maintainers.
+- [SECURITY.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/SECURITY.md) — Security policy.

@@ -41,6 +41,14 @@ CI runs the same steps with `uv sync --frozen` on **Python 3.11 and 3.12**; `pyt
 - Update the README, [docs/THEORY.zh.md](docs/THEORY.zh.md), and (if scope or non-claims change) [docs/THEORY.en.md](docs/THEORY.en.md) or [examples/](examples/) when user-facing behavior or theory claims change.
 - Do not commit secrets (`.env`, API keys, tokens).
 
+## Repository metadata (maintainers)
+
+GitHub’s **About** box affects discovery (search and the repo header). After substantive releases, consider:
+
+- **Description** (suggested, under ~350 characters): `Python CLI: LangGraph prompt compiler (radar → gate → route → compile → critic); JSON envelope for agents.`
+- **Topics** (pick a subset that fits the project): `langgraph`, `langchain`, `prompt-engineering`, `llm`, `python`, `cli`, `openai`, `deepseek`, `agent`, `dspy`
+- **Website** (optional): [English theory bridge](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.en.md) or the [README](https://github.com/RimmonXIA/Prompt_Polisher#readme) anchor.
+
 ## Code of conduct
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.

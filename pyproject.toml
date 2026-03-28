@@ -1,18 +1,23 @@
 [project]
 name = "prompt-polisher"
 version = "0.1.0"
-description = "Multi-node agentic prompt compiler (LLM-as-compiler workflow)."
+description = "Python CLI: LangGraph multi-node prompt compiler (radar, threat gate, routing, compile, critic); structured JSON reports and versioned agent envelope; LangChain-core compatible stack."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 keywords = [
     "prompt-engineering",
+    "prompt-compiler",
     "langgraph",
+    "langchain",
     "llm",
     "compiler",
     "agent",
     "openai",
     "deepseek",
+    "dspy",
+    "critic",
+    "threat-gate",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -41,6 +46,7 @@ prompt-polisher-langfuse-check = "prompt_polisher.langfuse_check:main"
 
 [project.urls]
 Homepage = "https://github.com/RimmonXIA/Prompt_Polisher"
+Documentation = "https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.en.md"
 Repository = "https://github.com/RimmonXIA/Prompt_Polisher"
 Issues = "https://github.com/RimmonXIA/Prompt_Polisher/issues"
 
