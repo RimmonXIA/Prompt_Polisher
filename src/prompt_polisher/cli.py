@@ -250,8 +250,10 @@ def main(argv: list[str] | None = None) -> int:
             use_envelope = True
 
     try:
+        from prompt_polisher.text import sanitize_user_input
+
         llm = build_llm_client(settings)
-        result = run_compiler(raw.strip(), settings, llm)
+        result = run_compiler(sanitize_user_input(raw.strip()), settings, llm)
     except ValueError as exc:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR

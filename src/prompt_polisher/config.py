@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     critic_use_prm: bool = Field(default=False, alias="CRITIC_USE_PRM")
     prm_model: str | None = Field(default=None, alias="PRM_MODEL")
+    external_prm_endpoint: str | None = Field(default=None, alias="EXTERNAL_PRM_ENDPOINT")
     prm_min_score: float = Field(default=0.45, alias="PRM_MIN_SCORE", ge=0.0, le=1.0)
     prm_temperature: float = Field(default=0.0, alias="PRM_TEMPERATURE", ge=0.0, le=2.0)
 

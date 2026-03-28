@@ -56,10 +56,7 @@ def test_prompts_dir_overrides_single_file(
     settings = get_settings()
     assert settings.prompts_dir is not None
 
-    radar_json = (
-        '{"negations_flipped":"x","threats":[],"alignment_risk":"low",'
-        '"summary":"s"}'
-    )
+    radar_json = '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"s"}'
     llm = _CaptureFakeLLM([radar_json])
     node_radar({"raw_prompt": "hello"}, llm, settings)  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]

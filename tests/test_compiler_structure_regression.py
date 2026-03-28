@@ -13,8 +13,7 @@ def _happy_path_five_calls() -> list[str]:
     """Radar → routing → compile → critic → router."""
     body = (
         "<thinking>reason step by step</thinking>"
-        "<user_context>preserved user block</user_context>"
-        + "x" * 30
+        "<user_context>preserved user block</user_context>" + "x" * 30
     )
     return [
         '{"negations_flipped":"Do X clearly","threats":[],"alignment_risk":"low","summary":"ok"}',

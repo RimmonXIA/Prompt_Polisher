@@ -34,11 +34,7 @@ def should_abort_after_radar(state: GraphState, settings: Settings) -> tuple[boo
     if settings.abort_on_radar_high and alignment == "high":
         return True, "radar_alignment_risk_high"
 
-    if (
-        not settings.author_trust_mode
-        and alignment == "high"
-        and threat_list
-    ):
+    if not settings.author_trust_mode and alignment == "high" and threat_list:
         return True, "radar_high_with_threats_untrusted"
 
     return False, ""

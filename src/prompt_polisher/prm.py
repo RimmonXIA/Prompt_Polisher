@@ -12,16 +12,14 @@ from prompt_polisher.text import parse_json_object, preview_text
 logger = logging.getLogger(__name__)
 
 _PRM_SYSTEM = (
-    "You are a process reward evaluator for a hardened prompt draft "
-    "(not end-user answers).\n"
-    "Score how well the draft is likely to serve as an executable instruction block: "
-    "clear structure, preserves safe task intent, avoids obvious policy bypass, "
-    "uses positive constraints where relevant.\n"
-    "The score is a heuristic signal for gating retries, not ground truth, "
-    "not formal verification, and not a safety certificate.\n"
-    "Return ONLY valid JSON with keys: score (number between 0 and 1 inclusive), "
-    "note (short string, may be empty).\n"
-    "Do not refuse the evaluation; score conservatively if unsure."
+    "You are a strict process reward evaluator for a hardened prompt draft.\n"
+    "Step 1: Verify the draft's structural safety (does it have isolated XML boundaries?).\n"
+    "Step 2: Verify the adherence to the original intent without policy bypass.\n"
+    "Step 3: Check for positive constraints vs negative phrasing.\n"
+    "Finally, assign a heuristic scalar score based on the steps.\n"
+    "Return ONLY valid JSON with keys: verification_steps (list of strings), "
+    "score (number between 0 and 1 inclusive), note (short string).\n"
+    "Do not refuse; score conservatively."
 )
 
 
@@ -32,12 +30,21 @@ def evaluate_process_reward(
     raw_intent: str,
 ) -> tuple[float | None, str]:
     """Call the LLM once for a scalar process score. On parse failure returns (None, reason)."""
-    user = (
-        "Original user intent (may be rough):\n"
-        f"{raw_intent}\n\n"
-        "Compiled prompt draft:\n"
-        f"{draft}"
-    )
+    if settings.external_prm_endpoint:
+        try:
+            import httpx
+
+            with httpx.Client(timeout=10.0) as client:
+                res = client.post(
+                    settings.external_prm_endpoint, json={"draft": draft, "intent": raw_intent}
+                )
+                res.raise_for_status()
+                data = res.json()
+                return float(data["score"]), str(data.get("note", "external_prm_success"))
+        except Exception as exc:
+            logger.warning("External PRM endpoint failed: %s, falling back to LLM", exc)
+
+    user = f"Original user intent (may be rough):\n{raw_intent}\n\nCompiled prompt draft:\n{draft}"
     messages = [
         {"role": "system", "content": _PRM_SYSTEM},
         {"role": "user", "content": user},

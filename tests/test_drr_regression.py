@@ -51,8 +51,7 @@ def test_radar_system_prompt_trusted_author_default(monkeypatch: pytest.MonkeyPa
     get_settings.cache_clear()
     settings = get_settings()
     radar_json = (
-        '{"negations_flipped":"x","threats":[],"alignment_risk":"low",'
-        '"summary":"pedagogical DRR"}'
+        '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"pedagogical DRR"}'
     )
     llm = RecordingFakeLLM([radar_json])
     node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings)  # type: ignore[arg-type]
