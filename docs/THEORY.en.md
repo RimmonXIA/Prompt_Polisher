@@ -17,6 +17,15 @@ Prompt engineering is treated as **structured intervention** on (at least) **att
 5. **Critic** — Rule checks first; optional scalar **PRM-like** score before the text critic; FAIL loops back to Compile up to `MAX_CRITIC_ITERATIONS`.
 6. **Router** — Text deliverables: final prompt, workflow blueprint, DSPy-style sketch.
 
+**Radar JSON field hints** (keys are **model-dependent**; common examples—see [README.md](../README.md) implementation table):
+
+| Field (often present) | Short meaning |
+| --- | --- |
+| `negations_flipped` | Restatement of user intent with negations / scope clarified for the model (internal phrasing aid). |
+| `threats` | List of heuristic threat tags from the model (e.g. injection signals); gate may use these. |
+| `alignment_risk` | Coarse label such as `low` / `medium` / `high`; feeds gate policy. |
+| `summary` | Natural-language radar summary; may be appended to gate `abort_detail`. |
+
 The CLI emits **text artifacts only**. **Temperature, top-p, logits masks, constrained decoding** belong to **your downstream decoder** (see implementation scope).
 
 ## “Layer” labels in diagrams

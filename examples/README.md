@@ -9,7 +9,7 @@ uv run prompt-polisher --report-json "…your raw text…"
 
 | Folder | Scenario |
 | --- | --- |
-| [`01_happy_path/`](01_happy_path/) | Normal completion: radar → route → compile → critic pass → deliverables. |
+| [`01_happy_path/`](01_happy_path/) | Normal completion: radar → route → compile → critic pass → deliverables. See [`01_happy_path/README.md`](01_happy_path/README.md) (sample JSON is **not** a fixed schema contract). |
 | [`02_aborted_gate/`](02_aborted_gate/) | ThreatGate abort after radar (no route/compile/critic). |
 | [`03_multi_node_hint/`](03_multi_node_hint/) | Routing suggests a multi-step workflow; shorter report excerpt. |
 

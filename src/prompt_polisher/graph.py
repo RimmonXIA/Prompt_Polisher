@@ -90,6 +90,6 @@ def run_compiler(raw_prompt: str, settings: Settings, llm: LLMClient) -> GraphSt
         out.get("output_route"),
         out.get("critic_iterations"),
         out.get("critic_passed"),
-        out.get("compilation_aborted"),
+        bool(out.get("compilation_aborted")),
     )
     return cast(GraphState, out)

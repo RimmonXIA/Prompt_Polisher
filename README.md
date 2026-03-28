@@ -12,8 +12,8 @@
 
 | | |
 | --- | --- |
-| **EN** | Copy [`.env.example`](.env.example) to `.env`, set `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` (and `LLM_PROVIDER` if needed). Run `uv sync --all-groups`, then `uv run prompt-polisher --dry-run` to verify settings, and `uv run prompt-polisher "Your raw task"` to print the compiled prompt. Use `--markdown` for a readable compilation report, `--report-json` for a structured JSON report, or `--json` for the full graph state. |
-| **中文** | 将 [`.env.example`](.env.example) 复制为 `.env`，填写 `OPENAI_API_KEY` 或 `DEEPSEEK_API_KEY` 等。执行 `uv sync --all-groups`，`uv run prompt-polisher --dry-run` 校验配置，`uv run prompt-polisher "你的原始需求"` 输出最终 prompt；`--markdown` 输出可读编译报告，`--report-json` 输出结构化报告 JSON，`--json` 输出完整图状态。 |
+| **EN** | Copy [`.env.example`](.env.example) to `.env`, set `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` (and `LLM_PROVIDER` if needed). Run `uv sync --all-groups`, then `uv run prompt-polisher --dry-run` to verify settings, and `uv run prompt-polisher "Your raw task"` to print the compiled prompt. Use `--markdown` for a readable compilation report, `--report-json` for a structured JSON report, `--envelope` (or `--agent`) for a versioned agent/tool JSON envelope, or `--json` for the full graph state. |
+| **中文** | 将 [`.env.example`](.env.example) 复制为 `.env`，填写 `OPENAI_API_KEY` 或 `DEEPSEEK_API_KEY` 等。执行 `uv sync --all-groups`，`uv run prompt-polisher --dry-run` 校验配置，`uv run prompt-polisher "你的原始需求"` 输出最终 prompt；`--markdown` 输出可读编译报告，`--report-json` 输出结构化报告 JSON，`--envelope` / `--agent` 输出带版本字段的 JSON 信封，`--json` 输出完整图状态。 |
 
 ```bash
 uv sync --all-groups
@@ -94,13 +94,67 @@ uv run prompt-polisher --report-json "你的原始需求"
 
 # 省略报告顶部的 Executive summary
 uv run prompt-polisher --markdown --no-report-summary "你的原始需求"
+
+# 版本化 JSON 信封（供 Agent / 工具协议使用；与 --report-json 互斥）
+uv run prompt-polisher --envelope "你的原始需求"
+# 等价别名
+uv run prompt-polisher --agent "你的原始需求"
+
+# 包版本（不调用 LLM）
+uv run prompt-polisher --version
+
+# 仅警告与错误日志（stderr），减轻自动化场景下的 stderr 噪声
+uv run prompt-polisher --quiet --envelope "你的原始需求"
 ```
 
-Langfuse 连通性与凭证探测（需配置 `LANGFUSE_*` 时才有意义）：
+### Agents and automation (CLI as tool protocol)
+
+For scripts, CI, and coding agents, treat the CLI as a small **tool protocol**: **stdout** carries the primary payload; **logging** goes to **stderr** (see [`src/prompt_polisher/logging_config.py`](src/prompt_polisher/logging_config.py)). Prefer **`--envelope`** or **`--report-json`** when you need structured radar / gate / critic context, not only the final prompt string.
+
+**Exit codes** (stable for automation):
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Run finished and the threat gate did **not** abort compilation (`compilation_aborted` is false). Applies to every output mode (default text, `--markdown`, `--json`, `--report-json`, `--envelope`). |
+| `2` | Run finished but compilation was **aborted** after radar (threat gate). Inspect JSON fields (`summary.compilation_aborted`, envelope `ok` / `error`) or the Markdown report for details. |
+| `1` | Misconfiguration, I/O failure, unexpected error, or invalid CLI usage. |
+
+**Environment**
+
+- `PROMPT_POLISHER_AGENT`: if set to a truthy value (`1`, `true`, `yes`, `on`) and you do **not** pass `--json`, `--markdown`, `--report-json`, or `--envelope`, the CLI prints **`--envelope`** JSON on stdout (same exit semantics as above).
+- `LOG_LEVEL` / `LOG_JSON`: see [`.env.example`](.env.example); reduce noise with `--quiet` (stderr shows warnings and errors only).
+- **Structured JSON to stdout** (`--json`, `--report-json`, `--envelope` / `--agent`, or `PROMPT_POLISHER_AGENT` defaulting to envelope): `httpx` and `httpcore` INFO lines on stderr are raised to WARNING so request spam does not drown out your payload; use **`--verbose`** to restore those HTTP logs; use **`--quiet`** to also drop most `prompt_polisher` INFO on stderr.
+
+**Envelope shape** (`--envelope` / `--agent`): top-level keys `ok`, `schemaVersion` (currently `1`), `data` (same content shape as `--report-json`), and `error` (`null` on success, or an object with `code`, `message`, `detail` when the gate aborts). Bump `schemaVersion` only when intentionally breaking the envelope layout.
+
+**Meaning of `ok`:** `true` **if and only if** the run did **not** stop at the threat gate (`compilation_aborted` is false). It is **not** HTTP status, not “downstream task succeeded,” and not a quality score—use `data` and your own checks for those.
+
+**LLM-shaped JSON:** In `--report-json` and envelope `data`, `radar_analysis` and `routing_decision` are **model-produced objects**; **key sets are not stable** across models or prompts. For automation, rely on `summary`, `deliverables`, and (when present) envelope `error`; treat other keys inside those objects as **optional extensions**.
+
+**Threat gate `abort_reason` values** (machine strings; also appear in envelope `error.message` when aborted). Authoritative list: [docs/AUDIT_SELF_EXPLAINING.md](docs/AUDIT_SELF_EXPLAINING.md) §3.5.
+
+| `abort_reason` | Trigger (summary) |
+| --- | --- |
+| `heuristic_prompt_injection` | Raw prompt matched local injection heuristics (`ABORT_ON_HEURISTIC_INJECTION`). |
+| `radar_possible_prompt_injection` | Radar `threats` contained `possible_prompt_injection`. |
+| `radar_alignment_risk_high` | Radar `alignment_risk` is `high` and `ABORT_ON_RADAR_HIGH` is true. |
+| `radar_high_with_threats_untrusted` | Untrusted author mode, `alignment_risk` high, and non-empty threats. |
+| `graph_miswired_early_abort_without_trigger` | Should not occur in normal runs (graph wiring error). |
+
+**中文简述：** 自动化时请用 **stdout 解析结果、stderr 看日志**；需要结构化上下文时用 **`--envelope` / `--report-json`**；用 **退出码 0 / 2 / 1** 区分成功编译、闸门中止与错误；信封字段 **`ok`** 仅表示**未因威胁闸门中止**，不等于任务或模型输出成功；**`radar_analysis` / `routing_decision` 内键名不保证稳定**。设置 **`PROMPT_POLISHER_AGENT=1`** 可在未指定其它输出格式时默认输出信封 JSON；JSON 主输出模式下默认压低 **`httpx`/`httpcore`** 的 INFO，需要排障时用 **`--verbose`**，需要更少本仓库日志时用 **`--quiet`**。
+
+Langfuse 连通性与凭证探测：
 
 ```bash
 uv run prompt-polisher-langfuse-check
 ```
+
+**`prompt-polisher-langfuse-check` exit codes:**
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Langfuse **health** endpoint returned HTTP 200. If `LANGFUSE_PUBLIC_KEY` or `LANGFUSE_SECRET_KEY` is missing, the tool **skips** credential verification and still exits `0` (not a failure—configure keys when you want auth checked). |
+| `1` | Health check non-200, or credentials were set but project API auth failed, or response was not valid JSON. |
 
 ### 测试与静态检查
 
