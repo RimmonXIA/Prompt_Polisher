@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml/badge.svg)](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![A2A Compliant](https://img.shields.io/badge/A2A-Compliant-success.svg)](https://github.com/a2aproject/A2A)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 🌐 English | [简体中文](./README.zh.md)
@@ -30,7 +31,14 @@ graph LR
     classDef gate fill:#ffebee,stroke:#c62828,stroke-width:2px;
     classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-    Raw([Raw Input]) --> Radar[Node 1: Radar]
+    subgraph A2A_Interface [A2A Protocol Interface]
+        direction LR
+        Discovery([/.well-known/agent-card.json])
+        JSONRPC[POST /a2a/v1 JSON-RPC]
+    end
+
+    Raw([Raw Input]) --> JSONRPC
+    JSONRPC --> Radar[Node 1: Radar]
     Radar --> Gate{Threat Gate}
     Gate -->|Abort| Stop([Early Abort])
     Gate -->|Pass| Route[Node 2: Routing]
@@ -43,6 +51,7 @@ graph LR
     class Critic critic;
     class Gate gate;
     class Stop,Final output;
+    class Discovery,JSONRPC output;
 ```
 
 ---
@@ -68,6 +77,9 @@ uv run prompt-polisher -m "Your requirement"
 
 # Agent-Ready: Output as a versioned JSON envelope
 uv run prompt-polisher --envelope "Your requirement"
+
+# Service Mode: Launch A2A HTTP Server
+uv run prompt-polisher --serve --port 8000
 ```
 
 ---

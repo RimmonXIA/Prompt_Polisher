@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml/badge.svg)](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![A2A Compliant](https://img.shields.io/badge/A2A-Compliant-success.svg)](https://github.com/a2aproject/A2A)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 🌐 [English](./README.md) | 简体中文
@@ -17,7 +18,7 @@
 - 🎯 **注意力管理 (Attention Management)**：自动在关键位置（首尾）强化核心指令，对抗长文本的 "Lost in the Middle" 效应。
 - 🛡️ **内置安全闸门 (Built-in Safety)**：多层“威胁雷达”在提示词送达下游模型前，嗅探并中和注入攻击 (Prompt Injection) 和对齐风险。
 - ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<thinking>` 标签与少样本示范 (ICL)，用序列长度置换推理质量。
-- 🤖 **Agent First 设计**：将 CLI 设计为工具协议（提供 JSON 信封、稳定的退出码），实现与自主编码 Agent 的无缝集成。
+- 🤖 **Agent First & A2A 原生**：将 CLI 设计为工具协议（提供 JSON 信封、稳定的退出码），同时作为符合规范的 **A2A 参与者**。支持通过 Agent Card 进行发现，并通过 JSON-RPC 与 SSE 流式传输进行实时任务委托。
 
 ---
 
@@ -30,7 +31,14 @@ graph LR
     classDef gate fill:#ffebee,stroke:#c62828,stroke-width:2px;
     classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-    Raw([原始输入]) --> Radar[Node 1: 雷达]
+    subgraph A2A_Interface [A2A Protocol 接口层]
+        direction LR
+        Discovery([/.well-known/agent-card.json])
+        JSONRPC[POST /a2a/v1 JSON-RPC]
+    end
+
+    Raw([原始输入]) --> JSONRPC
+    JSONRPC --> Radar[Node 1: 雷达]
     Radar --> Gate{威胁闸门}
     Gate -->|中止| Stop([提前终止])
     Gate -->|通过| Route[Node 2: 路由]
@@ -43,6 +51,7 @@ graph LR
     class Critic critic;
     class Gate gate;
     class Stop,Final output;
+    class Discovery,JSONRPC output;
 ```
 
 ---
@@ -68,6 +77,9 @@ uv run prompt-polisher -m "你的原始需求"
 
 # Agent 模式: 输出版本化的 JSON 信封，供自动化脚本解析
 uv run prompt-polisher --envelope "你的原始需求"
+
+# 服务模式: 启动 A2A HTTP 服务器
+uv run prompt-polisher --serve --port 8000
 ```
 
 ---
@@ -115,6 +127,17 @@ uv run prompt-polisher --envelope "你的原始需求"
 - `LLM_PROVIDER`: `openai`（默认）或 `deepseek`。
 - `AUTHOR_TRUST_MODE`: 设置为 `true` 可针对可信作者禁用严格的安全闸门。
 - `MAX_CRITIC_ITERATIONS`: 控制审查反馈循环的最大深度（默认: 3）。
+
+---
+
+## 🤝 A2A 集成
+
+Prompt Polisher 是一个 [全合规 A2A 参与者](https://github.com/a2aproject/A2A) (Agent-to-Agent Protocol)。
+
+- **服务发现**: `uv run prompt-polisher --agent-card` 或访问 `GET /.well-known/agent-card.json`
+- **A2A 服务器**: `uv run prompt-polisher --serve --port 8000`
+- **服务接口**: 支持 `SendMessage`, `GetTask` 以及 `SendStreamingMessage` (SSE) 等 JSON-RPC 2.0 标准方法。
+- **合规状态**: 已完成 Phase 2 完整实现。
 
 ---
 
