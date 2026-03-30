@@ -136,7 +136,7 @@ Prompt Polisher is a [Full A2A Participant](https://github.com/a2aproject/A2A) (
 
 - **Discovery**: `uv run prompt-polisher --agent-card` or `GET /.well-known/agent-card.json`
 - **A2A Server**: `uv run prompt-polisher --serve --port 8000`
-- **Service API**: JSON-RPC 2.0 endpoints for `SendMessage`, `GetTask`, and `SendStreamingMessage` (SSE).
+- **Service API**: JSON-RPC 2.0 endpoints for `SendMessage`, `GetTask`, `ListTasks`, and `SendStreamingMessage` (SSE).
 - **Compliance Status**: Full Phase 2 implementation.
 
 ---

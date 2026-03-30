@@ -10,7 +10,7 @@
   "defaultInputModes": ["text/plain"],
   "defaultOutputModes": ["application/json", "text/plain", "text/markdown"],
   "capabilities": {
-    "streaming": false,
+    "streaming": true,
     "pushNotifications": false,
     "stateTransitionHistory": false
   },
@@ -29,5 +29,11 @@
       "outputModes": ["application/json", "text/plain", "text/markdown"]
     }
   ],
-  "supportedInterfaces": []
+  "supportedInterfaces": [
+    {
+      "url": "/a2a/v1",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "1.0"
+    }
+  ]
 }
