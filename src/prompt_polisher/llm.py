@@ -15,8 +15,9 @@ from prompt_polisher.text import preview_text
 logger = logging.getLogger(__name__)
 
 # Extra attempts after the SDK exhausts its own retries.
-_TRANSPORT_ATTEMPTS = 4
-_TRANSPORT_BACKOFF_SEC = 1.5
+# We set the SDK's internal max_retries to 0 so we don't multiply these!
+_TRANSPORT_ATTEMPTS = 3
+_TRANSPORT_BACKOFF_SEC = 2.0
 
 
 @runtime_checkable
@@ -45,8 +46,8 @@ class OpenAICompatibleClient:
         base_url = settings.resolved_base_url()
         client_kwargs: dict[str, Any] = {
             "api_key": api_key,
-            "max_retries": 3,
-            "timeout": httpx.Timeout(connect=30.0, read=240.0, write=60.0, pool=30.0),
+            "max_retries": 0,
+            "timeout": httpx.Timeout(connect=30.0, read=180.0, write=30.0, pool=30.0),
         }
         if base_url is not None:
             client_kwargs["base_url"] = base_url

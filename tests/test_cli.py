@@ -208,7 +208,7 @@ def test_machine_json_mode_dampens_httpx(
     assert logging.getLogger("httpcore").level == logging.WARNING
 
 
-def test_default_text_does_not_dampen_httpx(
+def test_default_text_dampens_httpx_by_default(
     monkeypatch: pytest.MonkeyPatch,
     fake_llm: MagicMock,
 ) -> None:
@@ -216,8 +216,8 @@ def test_default_text_does_not_dampen_httpx(
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
     monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     cli.main(["hi"])
-    assert logging.getLogger("httpx").level == logging.NOTSET
-    assert logging.getLogger("httpcore").level == logging.NOTSET
+    assert logging.getLogger("httpx").level == logging.WARNING
+    assert logging.getLogger("httpcore").level == logging.WARNING
 
 
 def test_verbose_skips_http_dampening(

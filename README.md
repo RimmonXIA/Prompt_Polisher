@@ -38,16 +38,15 @@ uv run prompt-polisher --json "Your raw requirement"
 ```mermaid
 flowchart LR
   Raw[RawPrompt] --> Radar[Radar]
-  Radar --> Gate[ThreatGate]
-  Gate -->|abort| Abort[EarlyAbort]
-  Gate -->|continue| Route[Routing]
-  Route --> Compile[Compile]
+  Radar -->|abort| Abort[EarlyAbort]
+  Radar -->|continue| Routing[Routing]
+  Routing --> Compile[Compile]
   Compile --> Critic{Critic}
   Critic -->|retry| Compile
-  Critic -->|pass| Router[Router]
-  Router --> O1[Final prompt]
-  Router --> O2[Blueprint]
-  Router --> O3[DSPy sketch]
+  Critic -->|pass / max_iter| Router[Router]
+  Router -->|instance| O1[Final prompt]
+  Router -->|template| O2[Blueprint]
+  Router -->|dspy| O3[DSPy sketch]
 ```
 
 ---

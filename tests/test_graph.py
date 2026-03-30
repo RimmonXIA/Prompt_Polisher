@@ -176,3 +176,44 @@ def test_build_graph_with_prm_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     assert out.get("critic_passed") is True
     assert out.get("prm_score") == pytest.approx(0.95)
     assert llm.chat_calls == len(_happy_path_responses(with_prm=True))
+
+
+def test_async_stream_mode_never_double_executes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("MAX_CRITIC_ITERATIONS", "2")
+    get_settings.cache_clear()
+    settings = get_settings()
+    
+    responses = _happy_path_responses()
+    llm = CountingFakeLLM(responses)
+    
+    started_nodes = []
+    done_nodes = []
+    
+    def on_start(node: str, ev: dict[str, object]) -> None:
+        started_nodes.append(node)
+        
+    def on_done(node: str, ev: dict[str, object]) -> None:
+        done_nodes.append(node)
+        
+    from prompt_polisher.graph import run_compiler_async
+    out = asyncio.run(
+        run_compiler_async(
+            "hello",
+            settings,
+            llm,
+            on_node_start=on_start,
+            on_node_done=on_done,
+        )
+    )
+    
+    # Prevent the massive bug: if it double executes, this would be 2x responses!
+    assert llm.chat_calls == len(responses)
+    
+    # Assert streams successfully propagated the nodes
+    assert "radar" in started_nodes
+    assert "radar" in done_nodes
+    assert "router" in started_nodes
+    assert "router" in done_nodes
+    
+    assert out.get("final_prompt") == "FINAL_PROMPT"

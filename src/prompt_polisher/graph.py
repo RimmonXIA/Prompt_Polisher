@@ -113,21 +113,37 @@ async def run_compiler_async(
 
     if on_node_start is not None or on_node_done is not None:
         # Stream mode: use astream so callers get per-node lifecycle hooks.
-        prev_node: str | None = None
-        final_state: GraphState = cast(GraphState, {})
+        final_state: GraphState = dict(initial)  # type: ignore
+        
+        if on_node_start is not None:
+            on_node_start("radar", {})
+
         async for event in app.astream(initial, stream_mode="updates"):
             for node_name, node_update in event.items():
-                if on_node_done is not None and prev_node is not None:
-                    on_node_done(prev_node, {})
-                if on_node_start is not None:
-                    on_node_start(node_name, node_update)
-                prev_node = node_name
                 final_state.update(node_update)
-        if on_node_done is not None and prev_node is not None:
-            on_node_done(prev_node, {})
-        # ainvoke gives authoritative merged state (stream_mode="updates" only
-        # yields deltas).
-        result = cast(GraphState, await app.ainvoke(initial))
+                if on_node_done is not None:
+                    on_node_done(node_name, node_update)
+                
+                # Predict next node to drive the interactive spinner accurately
+                next_node = None
+                if node_name == "radar":
+                    from prompt_polisher.gate import should_abort_after_radar
+                    abort, _ = should_abort_after_radar(final_state, settings)
+                    next_node = "early_abort" if abort else "routing"
+                elif node_name == "routing":
+                    next_node = "compile"
+                elif node_name == "compile":
+                    next_node = "critic"
+                elif node_name == "critic":
+                    if final_state.get("critic_passed") or int(final_state.get("critic_iterations", 0)) >= settings.max_critic_iterations:
+                        next_node = "router"
+                    else:
+                        next_node = "compile"
+                
+                if next_node and on_node_start is not None:
+                    on_node_start(next_node, {})
+
+        result = cast(GraphState, final_state)
     else:
         result = cast(GraphState, await app.ainvoke(initial))
 

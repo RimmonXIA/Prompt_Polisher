@@ -21,7 +21,12 @@ from prompt_polisher.state import GraphState
 from prompt_polisher.text import sanitize_user_input
 from prompt_polisher.ux import SessionRenderer
 
+from rich_argparse import RichHelpFormatter
+
 logger = logging.getLogger(__name__)
+
+# Apply our application's branding to the help groups
+RichHelpFormatter.styles["argparse.groups"] = "bold cyan"
 
 # Exit codes (documented in README — keep stable for automation).
 EXIT_SUCCESS = 0
@@ -31,10 +36,10 @@ EXIT_COMPILATION_ABORTED = 2
 ENVELOPE_SCHEMA_VERSION = 1
 
 _HELP_EPILOG = """\
-Automation (tool protocol):
-  Exit: 0 ok, 2 threat-gate abort, 1 error. Payload on stdout; logs on stderr.
-  PROMPT_POLISHER_AGENT=1 defaults to envelope JSON when no output flag is set.
-  Full detail: README.md -> section "Agents and automation".
+[bold cyan]Automation (tool protocol):[/bold cyan]
+  [dim]Exit:[/dim] [green]0[/green] ok, [yellow]2[/yellow] threat-gate abort, [red]1[/red] error. Payload on stdout; logs on stderr.
+  [bold]PROMPT_POLISHER_AGENT=1[/bold] defaults to envelope JSON when no output flag is set.
+  [dim]Full detail:[/dim] README.md -> section "Agents and automation".
 """
 
 
@@ -62,6 +67,7 @@ def _machine_json_stdout(args: argparse.Namespace) -> bool:
 def _dampen_http_client_loggers() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("openai._base_client").setLevel(logging.WARNING)
 
 
 def exit_code_for_state(state: GraphState) -> int:
@@ -103,7 +109,7 @@ def compilation_envelope(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="prompt-polisher",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=RichHelpFormatter,
         description=(
             "Heuristic LLM prompt compiler (radar -> route -> compile -> critic). "
             "Not a guarantee of task success or safety; see docs/THEORY.zh.md."
@@ -213,7 +219,7 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(settings)
     if args.quiet:
         logging.getLogger().setLevel(logging.WARNING)
-    if _machine_json_stdout(args) and not args.verbose:
+    if not args.verbose:
         _dampen_http_client_loggers()
     settings.apply_langchain_env()
 
@@ -260,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         llm = build_llm_client(settings)
         sanitized = sanitize_user_input(raw.strip())
-        renderer = SessionRenderer() if _interactive else None
+        renderer = SessionRenderer(raw_prompt=sanitized, version=_package_version()) if _interactive else None
 
         def _on_start(node_name: str, event: dict[str, object]) -> None:
             if renderer:
@@ -268,23 +274,28 @@ def main(argv: list[str] | None = None) -> int:
 
         def _on_done(node_name: str, event: dict[str, object]) -> None:
             if renderer:
-                renderer.on_node_done(node_name)
+                renderer.on_node_done(node_name, event=event)
 
         t0 = time.monotonic()
-        result = asyncio.run(
-            run_compiler_async(
-                sanitized,
-                settings,
-                llm,
-                on_node_start=_on_start if renderer else None,
-                on_node_done=_on_done if renderer else None,
+        try:
+            result = asyncio.run(
+                run_compiler_async(
+                    sanitized,
+                    settings,
+                    llm,
+                    on_node_start=_on_start if renderer else None,
+                    on_node_done=_on_done if renderer else None,
+                )
             )
-        )
-        if renderer:
-            renderer.finish(
-                elapsed=time.monotonic() - t0,
-                was_aborted=bool(result.get("compilation_aborted")),
-            )
+            if renderer:
+                renderer.finish(
+                    elapsed=time.monotonic() - t0,
+                    was_aborted=bool(result.get("compilation_aborted")),
+                )
+        except KeyboardInterrupt:
+            if renderer:
+                renderer.interrupt()
+            return 130
     except ValueError as exc:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR
@@ -333,5 +344,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(env_payload, indent=2, ensure_ascii=False, default=str))
         return code
 
+    if renderer:
+        renderer.print_result_header()
+        
     print(result.get("final_prompt", ""))
+    
+    if renderer:
+        renderer.print_result_footer()
+        
     return code
