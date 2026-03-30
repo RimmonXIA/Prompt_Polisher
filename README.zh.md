@@ -15,10 +15,10 @@
 
 大多数 Prompt 失败的原因在于：缺乏结构、误触负向约束，或者透支了模型单次思考的逻辑极限。**Prompt Polisher** 将提示词工程视为对大模型注意力、算力和安全边界的**结构化干预**：
 
-- 🎯 **注意力管理 (Attention Management)**：自动在关键位置（首尾）强化核心指令，对抗长文本的 "Lost in the Middle" 效应。
-- 🛡️ **内置安全闸门 (Built-in Safety)**：多层“威胁雷达”在提示词送达下游模型前，嗅探并中和注入攻击 (Prompt Injection) 和对齐风险。
-- ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<thinking>` 标签与少样本示范 (ICL)，用序列长度置换推理质量。
-- 🤖 **Agent First & A2A 原生**：将 CLI 设计为工具协议（提供 JSON 信封、稳定的退出码），同时作为符合规范的 **A2A 参与者**。支持通过 Agent Card 进行发现，并通过 JSON-RPC 与 SSE 流式传输进行实时任务委托。
+- 🎯 **注意力管理 (Attention Management)**：通过**首尾强化**对抗 "Lost in the Middle" 效应，并引入**锚点角色 (Anchor Persona)** / 流形寻址以稳定输出风格与详略。
+- 🛡️ **内置安全闸门 (Built-in Safety)**：多层“威胁雷达”探测注入攻击与对齐风险。使用 **XML 沙盒隔离 (XML Sandboxing)** 确保指令隔离，并支持可选的 **PRM 式标量门控** 进行过程质量控制。
+- ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<thinking>` 标签与 ICL 少样本示范。利用**雷达驱动的正向化改写 (Positive Framing)** 中和意图解构中的指令失效。
+- 🤖 **多轨输出与 A2A 原生**：除 Prompt 外，同时产出 **LangGraph 蓝图** 与 **DSPy 代码草图**。作为全合规 **A2A 参与者**，支持 JSON-RPC 与 SSE 实时任务委托。
 
 ---
 
@@ -127,6 +127,10 @@ uv run prompt-polisher --serve --port 8000
 - `LLM_PROVIDER`: `openai`（默认）或 `deepseek`。
 - `AUTHOR_TRUST_MODE`: 设置为 `true` 可针对可信作者禁用严格的安全闸门。
 - `MAX_CRITIC_ITERATIONS`: 控制审查反馈循环的最大深度（默认: 3）。
+- `CRITIC_USE_PRM`: 启用可选的基于标量的过程奖励门控（启发式）。
+
+> [!IMPORTANT]
+> **范围与局限**: Prompt Polisher **仅产出文本制品**。它不直接在工具内部执行约束解码 (logits masking) 或采样控制；这些应在您的下游解码器或 API 客户端中配置。
 
 ---
 

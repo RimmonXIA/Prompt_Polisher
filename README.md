@@ -15,10 +15,10 @@ A **multi-node LangGraph compiler** that turns rough intent into structured, saf
 
 Most prompts fail because they lack structure, trigger negative constraints, or exhaust the model's single-pass reasoning limit. **Prompt Polisher** treats prompt engineering as a **structured intervention** on attention, compute, and safety:
 
-- 🎯 **Attention Management**: Automatically reinforces instructions at critical positions (Head/Tail) to combat "Lost in the Middle".
-- 🛡️ **Built-in Safety**: A multi-layered "Threat Radar" detects and neutralizes prompt injections and alignment risks before they reach your downstream model.
-- ⚙️ **Compute-Optimized**: Injects `<thinking>` blocks and ICL (In-Context Learning) few-shots to trade sequence length for reasoning quality.
-- 🤖 **Agent-First & A2A Native**: Designed as a tool protocol (JSON envelope, stable exit codes) and a spec-compliant **A2A Participant**. Supports discovery via Agent Cards and real-time task delegation through JSON-RPC and SSE streaming.
+- 🎯 **Attention Management**: Combats "Lost in the Middle" by reinforcing instructions at **Head/Tail** positions and applying **Anchor Persona** (manifold addressing) to stabilize style and detail.
+- 🛡️ **Built-in Safety**: A multi-layered "Threat Radar" detects prompt injections and alignment risks. Uses **XML Sandboxing** for isolation and optional **PRM-style scalar gating** for process-level quality control.
+- ⚙️ **Compute-Optimized**: Injects `<thinking>` blocks and ICL few-shots to trade sequence length for reasoning quality. Uses **Positive Framing** (Radar-driven negation flipping) to neutralize instruction failure.
+- 🤖 **Multi-track & A2A Native**: Emits prompts, **LangGraph blueprints**, and **DSPy sketches** for automation. Designed as a tool protocol (JSON envelope) and a spec-compliant **A2A Participant** with JSON-RPC and SSE support.
 
 ---
 
@@ -127,6 +127,10 @@ Key settings in your `.env`:
 - `LLM_PROVIDER`: `openai` (default) or `deepseek`.
 - `AUTHOR_TRUST_MODE`: Set to `true` to disable strict safety gates for known authors.
 - `MAX_CRITIC_ITERATIONS`: Control the feedback loop depth (default: 3).
+- `CRITIC_USE_PRM`: Enable optional scalar-based process reward gating (heuristic).
+
+> [!IMPORTANT]
+> **Scope & Limits**: Prompt Polisher emits **text artifacts only**. It does not perform constrained decoding (logits masking) or sampling within the tool; these should be configured in your downstream decoder/API client.
 
 ---
 
