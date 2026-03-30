@@ -3,8 +3,8 @@
 These files illustrate **CLI inputs and report shapes**. They are **not** produced by pinning a model snapshot in CI; numbers and long prose are **fabricated or trimmed** for privacy and stability. To reproduce with a real model, run:
 
 ```bash
-uv run prompt-polisher --markdown "…your raw text…"
-uv run prompt-polisher --report-json "…your raw text…"
+uv run prompt-polisher -m "…your raw text…"
+uv run prompt-polisher --envelope "…your raw text…"
 ```
 
 | Folder | Scenario |

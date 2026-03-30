@@ -1,6 +1,6 @@
 # Prompt Polisher
 
-> Open-source **Python 3.11+ CLI** that runs a **LangGraph** workflow to compile rough user intents into structured prompts: radar → optional threat gate → routing → compile → critic → deliverables (final prompt, blueprint, DSPy-style sketch). Outputs plain text; use **`--report-json`** or **`--envelope`** / **`--agent`** for structured, agent-friendly JSON. Canonical theory (Chinese) and an English bridge live under `docs/`. **Downstream success and safety depend on your model and system design**, not this tool alone.
+> Open-source **Python 3.11+ CLI** that runs a **LangGraph** workflow to compile rough user intents into structured prompts: radar → optional threat gate → routing → compile → critic → deliverables (final prompt, blueprint, DSPy-style sketch). Outputs plain text; use **`-m`** for markdown reports or **`--envelope`** for structured, agent-friendly JSON. Canonical theory (Chinese) and an English bridge live under `docs/`. **Downstream success and safety depend on your model and system design**, not this tool alone.
 
 ## Start here
 
@@ -13,7 +13,7 @@
 
 ## Examples
 
-- [examples/README.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/examples/README.md) — Sample inputs and report shapes (`--markdown`, `--report-json`).
+- [examples/README.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/examples/README.md) — Sample inputs and report shapes (`-m`, `--envelope`).
 
 ## Contributing and security
 

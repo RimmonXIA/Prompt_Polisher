@@ -31,7 +31,7 @@ body:
       label: Reproduction steps
       description: Commands, inputs, and environment (OS, Python version, `uv` version if relevant).
       placeholder: |
-        uv run prompt-polisher --dry-run
+        uv run prompt-polisher --version
         ...
     validations:
       required: true
