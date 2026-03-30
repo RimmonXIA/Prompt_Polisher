@@ -16,6 +16,7 @@ from prompt_polisher.state import (
     GraphState,
     OutputRoute,
     RadarAnalysis,
+    RouterResult,
     RoutingDecision,
 )
 from prompt_polisher.text import looks_like_injection, preview_text, strip_code_fence
@@ -25,7 +26,15 @@ logger = logging.getLogger(__name__)
 _M = TypeVar("_M", bound=BaseModel)
 
 
-def _system_user(system: str, user: str) -> list[dict[str, str]]:
+def _system_user(
+    system: str, user: str, schema_cls: type[BaseModel] | None = None
+) -> list[dict[str, str]]:
+    if schema_cls is not None:
+        schema_json = json.dumps(schema_cls.model_json_schema(), ensure_ascii=False)
+        system = (
+            f"{system}\n\nYou MUST return ONLY valid JSON matching this schema:\n"
+            f"```json\n{schema_json}\n```"
+        )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
@@ -55,7 +64,7 @@ async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> d
     user = bundle.radar_user(raw, heuristic_injection)
     if settings.log_prompt_previews:
         logger.info("radar input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user))
+    text = await llm.achat(_system_user(system, user, RadarAnalysis))
 
     parsed: RadarAnalysis | None = _parse_pydantic(RadarAnalysis, text)
     if parsed is None:
@@ -81,7 +90,7 @@ async def node_routing(state: GraphState, llm: LLMClient, settings: Settings) ->
     user = bundle.routing_user(radar_json, state["raw_prompt"])
     if settings.log_prompt_previews:
         logger.info("routing input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user))
+    text = await llm.achat(_system_user(system, user, RoutingDecision))
 
     parsed: RoutingDecision | None = _parse_pydantic(RoutingDecision, text)
     if parsed is None:
@@ -109,7 +118,7 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
     user = f"Compile from:\n{json.dumps(payload, ensure_ascii=False)}"
     if settings.log_prompt_previews:
         logger.info("compile input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user))
+    text = await llm.achat(_system_user(system, user, CompileResult))
 
     parsed: CompileResult | None = _parse_pydantic(CompileResult, text)
     draft = (parsed.draft.strip() if parsed else "") or text.strip() or state["raw_prompt"]
@@ -158,7 +167,7 @@ async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> 
     user = bundle.critic_user(draft, state["raw_prompt"])
     if settings.log_prompt_previews:
         logger.info("critic input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user))
+    text = await llm.achat(_system_user(system, user, CriticFeedback))
 
     parsed: CriticFeedback | None = _parse_pydantic(CriticFeedback, text)
     if parsed is None:
@@ -215,22 +224,20 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
     )
     if settings.log_prompt_previews:
         logger.info("router input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user))
+    text = await llm.achat(_system_user(system, user, RouterResult))
 
-    raw = strip_code_fence(text)
-    try:
-        data: dict[str, Any] = json.loads(raw)
-    except Exception:
-        data = {
-            "final_prompt": draft,
-            "workflow_blueprint": bundle.router_fallback_workflow(route),
-            "dspy_sketch": bundle.router_fallback_dspy(),
-        }
+    parsed: RouterResult | None = _parse_pydantic(RouterResult, text)
+    if not parsed:
+        parsed = RouterResult(
+            final_prompt=draft,
+            workflow_blueprint=bundle.router_fallback_workflow(route),
+            dspy_sketch=bundle.router_fallback_dspy(),
+        )
 
     return {
         "output_route": route,
-        "final_prompt": str(data.get("final_prompt") or draft),
-        "workflow_blueprint": str(data.get("workflow_blueprint") or ""),
-        "dspy_sketch": str(data.get("dspy_sketch") or ""),
+        "final_prompt": parsed.final_prompt or draft,
+        "workflow_blueprint": parsed.workflow_blueprint,
+        "dspy_sketch": parsed.dspy_sketch,
         "critic_halted_max": halted,
     }

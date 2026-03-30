@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from typing import Any, cast
 
 from langgraph.graph import END, START, StateGraph
@@ -19,6 +20,9 @@ from prompt_polisher.nodes import (
 from prompt_polisher.state import GraphState
 
 logger = logging.getLogger(__name__)
+
+# Callback type: receives (node_name, event) on each stream tick.
+NodeEventCallback = Callable[[str, dict[str, Any]], None]
 
 
 def build_graph(settings: Settings, llm: LLMClient) -> Any:
@@ -87,21 +91,42 @@ async def run_compiler_async(
     settings: Settings,
     llm: LLMClient,
     *,
-    stream_to_stderr: bool = False,
+    on_node_start: NodeEventCallback | None = None,
+    on_node_done: NodeEventCallback | None = None,
 ) -> GraphState:
-    import sys
+    """Run the compiler graph asynchronously.
 
+    Args:
+        raw_prompt: The sanitised user prompt.
+        settings: Application settings.
+        llm: LLM client implementation.
+        on_node_start: Optional callback invoked *before* each node runs,
+            receiving ``(node_name, raw_event_dict)``.
+        on_node_done: Optional callback invoked *after* each node completes,
+            receiving ``(node_name, raw_event_dict)``.
+
+    Returns:
+        The merged :class:`GraphState` after the graph finishes.
+    """
     app = build_graph(settings, llm)
     initial: GraphState = {"raw_prompt": raw_prompt}
 
-    if stream_to_stderr:
-        out: GraphState = cast(GraphState, {})
+    if on_node_start is not None or on_node_done is not None:
+        # Stream mode: use astream so callers get per-node lifecycle hooks.
+        prev_node: str | None = None
+        final_state: GraphState = cast(GraphState, {})
         async for event in app.astream(initial, stream_mode="updates"):
-            for node_name, _node_update in event.items():
-                print(f"[prompt-polisher] ▶ {node_name}", file=sys.stderr)
-            out.update(event.get(list(event.keys())[-1], {}))
-        # ainvoke gives us the full merged state; stream_mode won't.
-        # Run ainvoke after streaming preview so we get the authoritative result.
+            for node_name, node_update in event.items():
+                if on_node_done is not None and prev_node is not None:
+                    on_node_done(prev_node, {})
+                if on_node_start is not None:
+                    on_node_start(node_name, node_update)
+                prev_node = node_name
+                final_state.update(node_update)
+        if on_node_done is not None and prev_node is not None:
+            on_node_done(prev_node, {})
+        # ainvoke gives authoritative merged state (stream_mode="updates" only
+        # yields deltas).
         result = cast(GraphState, await app.ainvoke(initial))
     else:
         result = cast(GraphState, await app.ainvoke(initial))
@@ -117,5 +142,5 @@ async def run_compiler_async(
 
 
 def run_compiler(raw_prompt: str, settings: Settings, llm: LLMClient) -> GraphState:
-    """Synchronous entry point – runs the async compiler in a new event loop."""
+    """Synchronous convenience wrapper — runs the async compiler in a new event loop."""
     return asyncio.run(run_compiler_async(raw_prompt, settings, llm))

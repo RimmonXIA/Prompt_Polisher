@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from prompt_polisher.text import looks_like_injection, parse_json_object, strip_code_fence
+from prompt_polisher.text import looks_like_injection, strip_code_fence
 
 
 def test_strip_code_fence() -> None:
     assert strip_code_fence('```json\n{"a":1}\n```') == '{"a":1}'
-
-
-def test_parse_json_object() -> None:
-    assert parse_json_object('{"x": true}') == {"x": True}
 
 
 @pytest.mark.parametrize(

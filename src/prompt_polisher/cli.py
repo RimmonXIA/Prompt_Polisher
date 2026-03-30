@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import time
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
@@ -18,6 +19,7 @@ from prompt_polisher.logging_config import configure_logging
 from prompt_polisher.report import compilation_report_dict, render_compilation_report
 from prompt_polisher.state import GraphState
 from prompt_polisher.text import sanitize_user_input
+from prompt_polisher.ux import SessionRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -251,14 +253,38 @@ def main(argv: list[str] | None = None) -> int:
         if _truthy_env("PROMPT_POLISHER_AGENT"):
             use_envelope = True
 
-    # Streaming to stderr: only when output is NOT machine-consumed (no agent/json flags)
-    # and the caller is an interactive terminal.
-    _stream = not _machine_json_stdout(args) and sys.stderr.isatty()
+    # Interactive UX: spinner + contextual messages when a human is watching.
+    # Must be disabled in machine/pipe mode so stderr stays clean.
+    _interactive = not _machine_json_stdout(args) and sys.stderr.isatty()
 
     try:
         llm = build_llm_client(settings)
         sanitized = sanitize_user_input(raw.strip())
-        result = asyncio.run(run_compiler_async(sanitized, settings, llm, stream_to_stderr=_stream))
+        renderer = SessionRenderer() if _interactive else None
+
+        def _on_start(node_name: str, event: dict[str, object]) -> None:
+            if renderer:
+                renderer.on_node_start(node_name)
+
+        def _on_done(node_name: str, event: dict[str, object]) -> None:
+            if renderer:
+                renderer.on_node_done(node_name)
+
+        t0 = time.monotonic()
+        result = asyncio.run(
+            run_compiler_async(
+                sanitized,
+                settings,
+                llm,
+                on_node_start=_on_start if renderer else None,
+                on_node_done=_on_done if renderer else None,
+            )
+        )
+        if renderer:
+            renderer.finish(
+                elapsed=time.monotonic() - t0,
+                was_aborted=bool(result.get("compilation_aborted")),
+            )
     except ValueError as exc:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR

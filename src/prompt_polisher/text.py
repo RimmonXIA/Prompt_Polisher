@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import re
-from typing import Any, cast
 
 
 def strip_code_fence(text: str) -> str:
@@ -11,15 +9,6 @@ def strip_code_fence(text: str) -> str:
         t = re.sub(r"^```(?:json)?\s*", "", t, flags=re.IGNORECASE)
         t = re.sub(r"\s*```$", "", t)
     return t.strip()
-
-
-def parse_json_object(text: str) -> dict[str, Any]:
-    raw = strip_code_fence(text)
-    parsed: object = json.loads(raw)
-    if not isinstance(parsed, dict):
-        msg = "expected JSON object"
-        raise ValueError(msg)
-    return cast(dict[str, Any], parsed)
 
 
 def preview_text(text: str, max_len: int = 200) -> str:

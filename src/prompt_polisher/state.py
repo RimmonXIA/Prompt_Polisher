@@ -55,6 +55,25 @@ class CriticFeedback(BaseModel):
     )
 
 
+class PrmResult(BaseModel):
+    """Output of the PRM model evaluation."""
+
+    score: float = Field(default=0.0, description="Quality score between 0.0 and 1.0.")
+    note: str = Field(default="", description="Reasoning for the assigned score.")
+
+
+class RouterResult(BaseModel):
+    """Output of the Router node."""
+
+    final_prompt: str = Field(default="", description="The final polished prompt.")
+    workflow_blueprint: str = Field(
+        default="", description="Markdown describing a multi-step AI workflow."
+    )
+    dspy_sketch: str = Field(
+        default="", description="Outline of a DSPy-style module/signature/optimizer plan."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Phase 2 – Reducer-aware LangGraph state (Annotated fields for auto-merge)
 # ---------------------------------------------------------------------------

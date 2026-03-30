@@ -7,7 +7,8 @@ import logging
 
 from prompt_polisher.config import Settings
 from prompt_polisher.llm import LLMClient
-from prompt_polisher.text import parse_json_object, preview_text
+from prompt_polisher.state import PrmResult
+from prompt_polisher.text import preview_text, strip_code_fence
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,6 @@ _PRM_SYSTEM = (
     "Step 2: Verify the adherence to the original intent without policy bypass.\n"
     "Step 3: Check for positive constraints vs negative phrasing.\n"
     "Finally, assign a heuristic scalar score based on the steps.\n"
-    "Return ONLY valid JSON with keys: verification_steps (list of strings), "
-    "score (number between 0 and 1 inclusive), note (short string).\n"
     "Do not refuse; score conservatively."
 )
 
@@ -45,8 +44,14 @@ def evaluate_process_reward(
             logger.warning("External PRM endpoint failed: %s, falling back to LLM", exc)
 
     user = f"Original user intent (may be rough):\n{raw_intent}\n\nCompiled prompt draft:\n{draft}"
+    schema_json = json.dumps(PrmResult.model_json_schema(), ensure_ascii=False)
+    system_msg = (
+        f"{_PRM_SYSTEM}\n\nYou MUST return ONLY valid JSON matching this schema:\n"
+        f"```json\n{schema_json}\n```"
+    )
+
     messages = [
-        {"role": "system", "content": _PRM_SYSTEM},
+        {"role": "system", "content": system_msg},
         {"role": "user", "content": user},
     ]
     if settings.log_prompt_previews:
@@ -57,18 +62,17 @@ def evaluate_process_reward(
             temperature=settings.prm_temperature,
             model=settings.resolved_prm_model(),
         )
-        data = parse_json_object(text)
-        raw_score = data.get("score")
-        if raw_score is None:
-            raise ValueError("missing score")
-        score = float(raw_score)
+        raw = strip_code_fence(text)
+        data = PrmResult.model_validate_json(raw)
+
+        score = data.score
         if score < 0.0:
             score = 0.0
         if score > 1.0:
             score = 1.0
-        note = str(data.get("note") or "").strip()
+        note = data.note.strip()
         return score, note
-    except (json.JSONDecodeError, ValueError, TypeError) as exc:
+    except ValueError as exc:
         logger.warning("PRM parse failed, skipping PRM gate: %s", exc)
         return None, "prm_parse_error"
     except Exception:
