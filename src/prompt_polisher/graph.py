@@ -135,7 +135,11 @@ async def run_compiler_async(
                 elif node_name == "compile":
                     next_node = "critic"
                 elif node_name == "critic":
-                    if final_state.get("critic_passed") or int(final_state.get("critic_iterations", 0)) >= settings.max_critic_iterations:
+                    max_iters_reached = (
+                        int(final_state.get("critic_iterations", 0)) 
+                        >= settings.max_critic_iterations
+                    )
+                    if final_state.get("critic_passed") or max_iters_reached:
                         next_node = "router"
                     else:
                         next_node = "compile"
@@ -143,7 +147,7 @@ async def run_compiler_async(
                 if next_node and on_node_start is not None:
                     on_node_start(next_node, {})
 
-        result = cast(GraphState, final_state)
+        result = final_state
     else:
         result = cast(GraphState, await app.ainvoke(initial))
 

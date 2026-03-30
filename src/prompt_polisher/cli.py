@@ -47,9 +47,10 @@ Automatically infuses structured logic, persona constraints, and systemic best p
 
 _HELP_EPILOG = """\
 [bold cyan]Automation & Exit Codes[/bold cyan]
-  [dim]• Exit:[/dim] [green]0[/green] Success, [yellow]2[/yellow] Threat-Gate Abort, [red]1[/red] System Error. (Payload on stdout, logs on stderr)
+  [dim]• Exit:[/dim] [green]0[/green] Success, [yellow]2[/yellow] Abort, [red]1[/red] Error.
+    (Payload on stdout, logs on stderr)
   [dim]• Env:[/dim]  [bold]PROMPT_POLISHER_AGENT=1[/bold] forces `--envelope` output.
-  [dim]• Docs:[/dim] See "Agents and automation" in README.md for full payload schema.
+  [dim]• Docs:[/dim] See "Agents and automation" in README.md for schema.
 """
 
 
@@ -140,7 +141,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Read prompt from file (UTF-8)",
     )
 
-    output_g = parser.add_argument_group("Output Formats", "At most one; default is final prompt text on stdout")
+    output_g = parser.add_argument_group(
+        "Output Formats", "At most one; default is final prompt text on stdout"
+    )
     output_g.add_argument(
         "-m",
         "--markdown",
@@ -262,7 +265,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         llm = build_llm_client(settings)
         sanitized = sanitize_user_input(raw.strip())
-        renderer = SessionRenderer(raw_prompt=sanitized, version=_package_version()) if _interactive else None
+        renderer = SessionRenderer(
+            raw_prompt=sanitized, version=_package_version()
+        ) if _interactive else None
 
         def _on_start(node_name: str, event: dict[str, object]) -> None:
             if renderer:

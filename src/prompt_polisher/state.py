@@ -22,8 +22,12 @@ class RadarAnalysis(BaseModel):
         default="medium", description="Risk level for policy misalignment."
     )
     summary: str = Field(
-        default="", 
-        description="Write a very brief, empathetic summary of the user's true intent or pain point. MUST be written in the SAME LANGUAGE as the user's original prompt (e.g. Simplified Chinese). Use a non-technical, human-friendly tone. Do not use AI/LLM jargon."
+        description=(
+            "Write a very brief, empathetic summary of the user's true intent or pain point. "
+            "MUST be written in the SAME LANGUAGE as the user's original prompt "
+            "(e.g. Simplified Chinese). Use a non-technical, human-friendly tone. "
+            "Do not use AI/LLM jargon."
+        )
     )
 
 
@@ -40,8 +44,12 @@ class RoutingDecision(BaseModel):
         default="careful expert assistant", description="Persona / style anchor for Compile."
     )
     rationale: str = Field(
-        default="", 
-        description="Write a brief, user-facing explanation of the strategy you have chosen to solve their problem. MUST be written in the SAME LANGUAGE as the user's original prompt. Avoid technical routing jargon; frame it as how you plan to help them."
+        description=(
+            "Write a brief, user-facing explanation of the strategy you have chosen to "
+            "solve their problem. MUST be written in the SAME LANGUAGE as the user's "
+            "original prompt. Avoid technical routing jargon; frame it as how you "
+            "plan to help them."
+        )
     )
 
 

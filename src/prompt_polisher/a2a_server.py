@@ -12,7 +12,7 @@ import logging
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -37,7 +37,8 @@ async def get_agent_card() -> dict[str, Any]:
     """Discovery endpoint mandated by A2A Spec §8.2."""
     card = build_agent_card()
     # Dynamic capability updates for the live server
-    card["capabilities"]["streaming"] = True
+    capabilities = cast(dict[str, Any], card.get("capabilities", {}))
+    capabilities["streaming"] = True
     card["supportedInterfaces"] = [
         {
             "url": "/a2a/v1",
@@ -48,8 +49,10 @@ async def get_agent_card() -> dict[str, Any]:
     return card
 
 
-@app.post("/a2a/v1")
-async def handle_rpc(request: Request, background_tasks: BackgroundTasks):
+@app.post("/a2a/v1", response_model=None)
+async def handle_rpc(
+    request: Request, background_tasks: BackgroundTasks
+) -> JSONResponse | EventSourceResponse | dict[str, Any]:
     """JSON-RPC 2.0 Entry point (Spec §9)."""
     try:
         body = await request.json()
@@ -166,11 +169,16 @@ async def handle_get_task(body: dict[str, Any]) -> dict[str, Any]:
 
     if task["status"] == "ABORTED":
         msg = f"SAFETY_INTERVENTION: {task.get('error')}"
-        response["result"]["task"]["status"]["message"] = msg
+        # Cast nested dictionary for Mypy
+        result_dict = cast(dict[str, Any], response["result"])
+        res_task = cast(dict[str, Any], result_dict["task"])
+        res_task["status"]["message"] = msg
 
     if task["result"]:
         # Map GraphState to A2A Artifacts (§4.1.7)
-        response["result"]["task"]["artifacts"] = [
+        result_dict = cast(dict[str, Any], response["result"])
+        res_task = cast(dict[str, Any], result_dict["task"])
+        res_task["artifacts"] = [
             {
                 "id": "final-prompt",
                 "name": "Compiled Prompt",
@@ -180,7 +188,8 @@ async def handle_get_task(body: dict[str, Any]) -> dict[str, Any]:
         ]
         # Include audit trail if available
         if "radar_analysis" in task["result"]:
-            response["result"]["task"]["artifacts"].append(
+            artifacts = cast(list[dict[str, Any]], res_task["artifacts"])
+            artifacts.append(
                 {
                     "id": "audit-trail",
                     "name": "Radar Audit",
@@ -241,7 +250,8 @@ async def stream_task_events(
         yield _sse_update(task_id, rpc_id, "ST_COMPILE", "Compiling prompt...")
         result = await run_compiler_async(user_input, settings, llm)
         
-        tasks[task_id]["status"] = "COMPLETED" if not result.get("compilation_aborted") else "ABORTED"
+        aborted = bool(result.get("compilation_aborted"))
+        tasks[task_id]["status"] = "COMPLETED" if not aborted else "ABORTED"
         tasks[task_id]["result"] = result
         
         if result.get("compilation_aborted"):
@@ -333,7 +343,8 @@ async def execute_task(task_id: str, user_input: str) -> None:
     llm = build_llm_client(settings)
     try:
         result = await run_compiler_async(user_input, settings, llm)
-        tasks[task_id]["status"] = "COMPLETED" if not result.get("compilation_aborted") else "ABORTED"
+        aborted = bool(result.get("compilation_aborted"))
+        tasks[task_id]["status"] = "COMPLETED" if not aborted else "ABORTED"
         tasks[task_id]["result"] = result
         if result.get("compilation_aborted"):
             tasks[task_id]["error"] = result.get("abort_reason", "Safety Check Failed")
