@@ -86,9 +86,8 @@ def test_exit_aborted_default_text(
 @pytest.mark.parametrize(
     "mode",
     [
-        ["--json"],
-        ["--report-json"],
         ["--markdown"],
+        ["--envelope"],
     ],
 )
 def test_exit_aborted_all_output_modes(
@@ -133,19 +132,6 @@ def test_envelope_aborted_ok_false_and_error(
     assert out["error"]["message"] == "threat_gate"
 
 
-def test_agent_alias_same_as_envelope(
-    monkeypatch: pytest.MonkeyPatch,
-    fake_llm: MagicMock,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
-    code = cli.main(["--agent", "hi"])
-    assert code == cli.EXIT_SUCCESS
-    out = json.loads(capsys.readouterr().out)
-    assert out["schemaVersion"] == cli.ENVELOPE_SCHEMA_VERSION
-
-
 def test_prompt_polisher_agent_env_selects_envelope(
     monkeypatch: pytest.MonkeyPatch,
     fake_llm: MagicMock,
@@ -173,7 +159,7 @@ def test_help_exits_zero_and_groups(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "PROMPT_POLISHER_AGENT" in out
     assert "Input:" in out
-    assert "Output:" in out
+    assert "Output Formats:" in out
     assert "Logging:" in out
 
 

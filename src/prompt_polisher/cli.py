@@ -21,12 +21,12 @@ from prompt_polisher.state import GraphState
 from prompt_polisher.text import sanitize_user_input
 from prompt_polisher.ux import SessionRenderer
 
-from rich_argparse import RichHelpFormatter
+from rich_argparse import RawDescriptionRichHelpFormatter
 
 logger = logging.getLogger(__name__)
 
 # Apply our application's branding to the help groups
-RichHelpFormatter.styles["argparse.groups"] = "bold cyan"
+RawDescriptionRichHelpFormatter.styles["argparse.groups"] = "bold cyan"
 
 # Exit codes (documented in README — keep stable for automation).
 EXIT_SUCCESS = 0
@@ -35,11 +35,21 @@ EXIT_COMPILATION_ABORTED = 2
 
 ENVELOPE_SCHEMA_VERSION = 1
 
+_HELP_DESC = """\
+[bold]Prompt Polisher[/bold] ✦ Elevate your raw ideas into professional-grade AI prompts.
+Automatically infuses structured logic, persona constraints, and systemic best practices.
+
+[bold]Examples:[/bold]
+  $ prompt-polisher "help me write a python script"
+  $ prompt-polisher -f my_draft.txt --markdown > output.md
+"""
+
+
 _HELP_EPILOG = """\
-[bold cyan]Automation (tool protocol):[/bold cyan]
-  [dim]Exit:[/dim] [green]0[/green] ok, [yellow]2[/yellow] threat-gate abort, [red]1[/red] error. Payload on stdout; logs on stderr.
-  [bold]PROMPT_POLISHER_AGENT=1[/bold] defaults to envelope JSON when no output flag is set.
-  [dim]Full detail:[/dim] README.md -> section "Agents and automation".
+[bold cyan]Automation & Exit Codes[/bold cyan]
+  [dim]• Exit:[/dim] [green]0[/green] Success, [yellow]2[/yellow] Threat-Gate Abort, [red]1[/red] System Error. (Payload on stdout, logs on stderr)
+  [dim]• Env:[/dim]  [bold]PROMPT_POLISHER_AGENT=1[/bold] forces `--envelope` output.
+  [dim]• Docs:[/dim] See "Agents and automation" in README.md for full payload schema.
 """
 
 
@@ -56,8 +66,8 @@ def _truthy_env(name: str) -> bool:
 
 
 def _machine_json_stdout(args: argparse.Namespace) -> bool:
-    """True when primary stdout is JSON for agents (--json, --report-json, --envelope, or env)."""
-    if args.json or args.report_json or args.envelope:
+    """True when primary stdout is JSON for agents (--envelope, or env)."""
+    if args.envelope:
         return True
     if args.markdown:
         return False
@@ -109,11 +119,8 @@ def compilation_envelope(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="prompt-polisher",
-        formatter_class=RichHelpFormatter,
-        description=(
-            "Heuristic LLM prompt compiler (radar -> route -> compile -> critic). "
-            "Not a guarantee of task success or safety; see docs/THEORY.zh.md."
-        ),
+        formatter_class=RawDescriptionRichHelpFormatter,
+        description=_HELP_DESC,
         epilog=_HELP_EPILOG,
         exit_on_error=False,
     )
@@ -133,50 +140,17 @@ def main(argv: list[str] | None = None) -> int:
         help="Read prompt from file (UTF-8)",
     )
 
-    output_g = parser.add_argument_group(
-        "Output",
-        "At most one; default is final prompt text on stdout",
-    )
-    out_mx = output_g.add_mutually_exclusive_group()
-    out_mx.add_argument(
-        "--json",
-        action="store_true",
-        help="Full graph state JSON",
-    )
-    out_mx.add_argument(
+    output_g = parser.add_argument_group("Output Formats", "At most one; default is final prompt text on stdout")
+    output_g.add_argument(
+        "-m",
         "--markdown",
         action="store_true",
-        help="Markdown compilation report",
+        help="Prints a rich Markdown analytical report (includes diff & summary)",
     )
-    out_mx.add_argument(
-        "--report-json",
-        action="store_true",
-        help="Structured report JSON (subset of state)",
-    )
-    out_mx.add_argument(
+    output_g.add_argument(
         "--envelope",
-        "--agent",
         action="store_true",
-        dest="envelope",
-        help=(
-            "Envelope JSON (ok, schemaVersion, data, error). "
-            "See README Agents; ok=true iff threat gate did not abort."
-        ),
-    )
-
-    report_g = parser.add_argument_group(
-        "Report",
-        "Only with --markdown, --report-json, or envelope",
-    )
-    report_g.add_argument(
-        "--report-before-after",
-        action="store_true",
-        help="Include raw vs final prompt in report",
-    )
-    report_g.add_argument(
-        "--no-report-summary",
-        action="store_true",
-        help="Omit executive summary block",
+        help="Prints a structured API JSON envelope (for Agents/CI)",
     )
 
     log_g = parser.add_argument_group("Logging")
@@ -200,13 +174,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print version and exit",
     )
-    other_g.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Print resolved config JSON; no LLM calls",
-    )
+    
     try:
         args = parser.parse_args(argv)
+        formats_count = sum([bool(args.markdown), bool(args.envelope)])
+        if formats_count > 1:
+            parser.error("argument -m/--envelope: mutually exclusive")
     except argparse.ArgumentError as exc:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR
@@ -241,21 +214,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_ERROR
 
-    if args.dry_run:
-        payload = {
-            "llm_provider": settings.llm_provider,
-            "model": settings.resolved_model(),
-            "base_url": settings.resolved_base_url(),
-            "max_critic_iterations": settings.max_critic_iterations,
-            "critic_use_prm": settings.critic_use_prm,
-            "prm_min_score": settings.prm_min_score,
-            "prm_model": settings.resolved_prm_model(),
-        }
-        print(json.dumps(payload, indent=2))
-        return EXIT_SUCCESS
-
     use_envelope = bool(args.envelope)
-    if not (args.json or args.markdown or args.report_json or args.envelope):
+    if not (args.markdown or args.envelope):
         if _truthy_env("PROMPT_POLISHER_AGENT"):
             use_envelope = True
 
@@ -309,37 +269,22 @@ def main(argv: list[str] | None = None) -> int:
 
     code = exit_code_for_state(result)
 
-    if args.json:
-        printable = {k: v for k, v in result.items()}
-        print(json.dumps(printable, indent=2, ensure_ascii=False, default=str))
-        return code
-
     if args.markdown:
         md = render_compilation_report(
             result,
             settings=settings,
-            include_summary=not args.no_report_summary,
-            include_before_after=args.report_before_after,
+            include_summary=True,
+            include_before_after=True,
         )
         print(md, end="")
-        return code
-
-    if args.report_json:
-        payload = compilation_report_dict(
-            result,
-            settings=settings,
-            include_summary=not args.no_report_summary,
-            include_before_after=args.report_before_after,
-        )
-        print(json.dumps(payload, indent=2, ensure_ascii=False, default=str))
         return code
 
     if use_envelope:
         env_payload = compilation_envelope(
             result,
             settings=settings,
-            include_summary=not args.no_report_summary,
-            include_before_after=args.report_before_after,
+            include_summary=True,
+            include_before_after=True,
         )
         print(json.dumps(env_payload, indent=2, ensure_ascii=False, default=str))
         return code
