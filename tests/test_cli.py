@@ -22,7 +22,7 @@ def _cli_api_env(monkeypatch: pytest.MonkeyPatch) -> None:
 def _reset_http_loggers() -> None:
     logging.getLogger("httpx").setLevel(logging.NOTSET)
     logging.getLogger("httpcore").setLevel(logging.NOTSET)
-    yield
+    yield  # type: ignore[misc]
     logging.getLogger("httpx").setLevel(logging.NOTSET)
     logging.getLogger("httpcore").setLevel(logging.NOTSET)
 
@@ -55,12 +55,20 @@ def _aborted_state() -> GraphState:
     }
 
 
+async def _async_happy(*_a: object, **_k: object) -> GraphState:
+    return _happy_state()
+
+
+async def _async_aborted(*_a: object, **_k: object) -> GraphState:
+    return _aborted_state()
+
+
 def test_exit_success_default_text(
     monkeypatch: pytest.MonkeyPatch,
     fake_llm: MagicMock,
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     code = cli.main(["hi"])
     assert code == cli.EXIT_SUCCESS
 
@@ -70,7 +78,7 @@ def test_exit_aborted_default_text(
     fake_llm: MagicMock,
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _aborted_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_aborted)
     code = cli.main(["hi"])
     assert code == cli.EXIT_COMPILATION_ABORTED
 
@@ -89,7 +97,7 @@ def test_exit_aborted_all_output_modes(
     mode: list[str],
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _aborted_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_aborted)
     code = cli.main([*mode, "hi"])
     assert code == cli.EXIT_COMPILATION_ABORTED
 
@@ -100,7 +108,7 @@ def test_envelope_ok_and_schema(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     code = cli.main(["--envelope", "hi"])
     assert code == cli.EXIT_SUCCESS
     out = json.loads(capsys.readouterr().out)
@@ -116,7 +124,7 @@ def test_envelope_aborted_ok_false_and_error(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _aborted_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_aborted)
     code = cli.main(["--envelope", "hi"])
     assert code == cli.EXIT_COMPILATION_ABORTED
     out = json.loads(capsys.readouterr().out)
@@ -131,7 +139,7 @@ def test_agent_alias_same_as_envelope(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     code = cli.main(["--agent", "hi"])
     assert code == cli.EXIT_SUCCESS
     out = json.loads(capsys.readouterr().out)
@@ -145,7 +153,7 @@ def test_prompt_polisher_agent_env_selects_envelope(
 ) -> None:
     monkeypatch.setenv("PROMPT_POLISHER_AGENT", "1")
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     code = cli.main(["hi"])
     assert code == cli.EXIT_SUCCESS
     out = json.loads(capsys.readouterr().out)
@@ -194,7 +202,7 @@ def test_machine_json_mode_dampens_httpx(
     fake_llm: MagicMock,
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     cli.main(["--envelope", "hi"])
     assert logging.getLogger("httpx").level == logging.WARNING
     assert logging.getLogger("httpcore").level == logging.WARNING
@@ -206,7 +214,7 @@ def test_default_text_does_not_dampen_httpx(
 ) -> None:
     monkeypatch.delenv("PROMPT_POLISHER_AGENT", raising=False)
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     cli.main(["hi"])
     assert logging.getLogger("httpx").level == logging.NOTSET
     assert logging.getLogger("httpcore").level == logging.NOTSET
@@ -217,13 +225,13 @@ def test_verbose_skips_http_dampening(
     fake_llm: MagicMock,
 ) -> None:
     monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
-    monkeypatch.setattr(cli, "run_compiler", lambda *_a, **_k: _happy_state())
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
     cli.main(["--envelope", "--verbose", "hi"])
     assert logging.getLogger("httpx").level == logging.NOTSET
 
 
 def test_unreadable_file_returns_exit_error(tmp_path: object) -> None:
-    p = tmp_path / "nope.txt"
+    p = tmp_path / "nope.txt"  # type: ignore[operator]
     p.write_text("x", encoding="utf-8")
     p.chmod(0)
     try:

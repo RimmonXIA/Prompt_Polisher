@@ -20,7 +20,7 @@ def _happy_path_five_calls() -> list[str]:
         '{"complexity":"low","multi_node_recommended":false,'
         '"anchor_persona":"expert","rationale":"simple"}',
         f'{{"draft":"{body}"}}',
-        '{"pass":true,"feedback":"","issues":[]}',
+        '{"passed":true,"feedback":"","verification_steps":[]}',
         '{"final_prompt":"FINAL_PROMPT","workflow_blueprint":"WF","dspy_sketch":"DSPY"}',
     ]
 

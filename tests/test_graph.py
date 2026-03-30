@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import pytest
@@ -24,21 +25,34 @@ class CountingFakeLLM(FakeLLMClient):
         self.chat_calls += 1
         return super().chat(messages, temperature=temperature, model=model)
 
+    async def achat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        model: str | None = None,
+    ) -> str:
+        self.chat_calls += 1
+        return (
+            self.chat.__wrapped__(self, messages, temperature=temperature, model=model)
+            if hasattr(self.chat, "__wrapped__")
+            else super().chat(messages, temperature=temperature, model=model)
+        )  # noqa: E501
+
 
 def _happy_path_responses(*, with_prm: bool = False) -> list[str]:
     compile_out = (
         '{"draft":"'
         "<thinking>reason step by step</thinking>"
         "<user_context>user</user_context>"
-        "Please answer with clarity and structure."
-        '"}'
+        'Please answer with clarity and structure."}'
     )
     tail = [
-        '{"pass":true,"feedback":"","issues":[]}',
+        '{"passed":true,"feedback":"","verification_steps":[]}',
         '{"final_prompt":"FINAL_PROMPT","workflow_blueprint":"WF","dspy_sketch":"DSPY"}',
     ]
     if with_prm:
-        tail = ['{"score":0.95,"note":""}', *tail]
+        tail = ['{"score":0.95,"note":"","verification_steps":[]}', *tail]
     return [
         '{"negations_flipped":"Do X clearly","threats":[],"alignment_risk":"low","summary":"ok"}',
         '{"complexity":"low","multi_node_recommended":false,'
@@ -118,7 +132,7 @@ def test_critic_loop_respects_max_iterations(monkeypatch: pytest.MonkeyPatch) ->
     get_settings.cache_clear()
     settings = get_settings()
 
-    fail_critic = '{"pass":false,"feedback":"bad","issues":["x"]}'
+    fail_critic = '{"passed":false,"feedback":"bad","verification_steps":["x"]}'
     responses = [
         *_happy_path_responses()[:3],
         fail_critic,
@@ -138,7 +152,7 @@ def test_conditional_routing_to_compile(monkeypatch: pytest.MonkeyPatch) -> None
     get_settings.cache_clear()
     settings = get_settings()
 
-    fail = '{"pass":false,"feedback":"fix","issues":["y"]}'
+    fail = '{"passed":false,"feedback":"fix","verification_steps":["y"]}'
     responses = [
         *_happy_path_responses()[:3],
         fail,
@@ -147,7 +161,7 @@ def test_conditional_routing_to_compile(monkeypatch: pytest.MonkeyPatch) -> None
     ]
     llm = FakeLLMClient(responses)
     app = build_graph(settings, llm)
-    out = app.invoke({"raw_prompt": "hello"})
+    out = asyncio.run(app.ainvoke({"raw_prompt": "hello"}))
     assert out.get("critic_passed") is True
     assert int(out.get("critic_iterations") or 0) >= 2
 

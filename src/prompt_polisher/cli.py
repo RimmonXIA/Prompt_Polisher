@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from prompt_polisher.config import Settings, get_settings
-from prompt_polisher.graph import run_compiler
+from prompt_polisher.graph import run_compiler_async
 from prompt_polisher.llm import build_llm_client
 from prompt_polisher.logging_config import configure_logging
 from prompt_polisher.report import compilation_report_dict, render_compilation_report
@@ -249,11 +249,18 @@ def main(argv: list[str] | None = None) -> int:
         if _truthy_env("PROMPT_POLISHER_AGENT"):
             use_envelope = True
 
+    # Streaming to stderr: only when output is NOT machine-consumed (no agent/json flags)
+    # and the caller is an interactive terminal.
+    _stream = not _machine_json_stdout(args) and sys.stderr.isatty()
+
     try:
+        import asyncio
+
         from prompt_polisher.text import sanitize_user_input
 
         llm = build_llm_client(settings)
-        result = run_compiler(sanitize_user_input(raw.strip()), settings, llm)
+        sanitized = sanitize_user_input(raw.strip())
+        result = asyncio.run(run_compiler_async(sanitized, settings, llm, stream_to_stderr=_stream))
     except ValueError as exc:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR

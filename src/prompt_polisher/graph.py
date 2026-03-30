@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, cast
 
@@ -23,20 +24,20 @@ logger = logging.getLogger(__name__)
 def build_graph(settings: Settings, llm: LLMClient) -> Any:
     graph = StateGraph(GraphState)
 
-    def radar(s: GraphState) -> dict[str, Any]:
-        return node_radar(s, llm, settings)
+    async def radar(s: GraphState) -> dict[str, Any]:
+        return await node_radar(s, llm, settings)
 
-    def routing(s: GraphState) -> dict[str, Any]:
-        return node_routing(s, llm, settings)
+    async def routing(s: GraphState) -> dict[str, Any]:
+        return await node_routing(s, llm, settings)
 
-    def compile_(s: GraphState) -> dict[str, Any]:
-        return node_compile(s, llm, settings)
+    async def compile_(s: GraphState) -> dict[str, Any]:
+        return await node_compile(s, llm, settings)
 
-    def critic(s: GraphState) -> dict[str, Any]:
-        return node_critic(s, llm, settings)
+    async def critic(s: GraphState) -> dict[str, Any]:
+        return await node_critic(s, llm, settings)
 
-    def router(s: GraphState) -> dict[str, Any]:
-        return node_router(s, llm, settings)
+    async def router(s: GraphState) -> dict[str, Any]:
+        return await node_router(s, llm, settings)
 
     def early_abort(s: GraphState) -> dict[str, Any]:
         return node_early_abort(s, settings)
@@ -81,15 +82,40 @@ def build_graph(settings: Settings, llm: LLMClient) -> Any:
     return graph.compile()
 
 
-def run_compiler(raw_prompt: str, settings: Settings, llm: LLMClient) -> GraphState:
+async def run_compiler_async(
+    raw_prompt: str,
+    settings: Settings,
+    llm: LLMClient,
+    *,
+    stream_to_stderr: bool = False,
+) -> GraphState:
+    import sys
+
     app = build_graph(settings, llm)
     initial: GraphState = {"raw_prompt": raw_prompt}
-    out = app.invoke(initial)
+
+    if stream_to_stderr:
+        out: GraphState = cast(GraphState, {})
+        async for event in app.astream(initial, stream_mode="updates"):
+            for node_name, _node_update in event.items():
+                print(f"[prompt-polisher] ▶ {node_name}", file=sys.stderr)
+            out.update(event.get(list(event.keys())[-1], {}))
+        # ainvoke gives us the full merged state; stream_mode won't.
+        # Run ainvoke after streaming preview so we get the authoritative result.
+        result = cast(GraphState, await app.ainvoke(initial))
+    else:
+        result = cast(GraphState, await app.ainvoke(initial))
+
     logger.info(
         "compiler finished route=%s critic_iters=%s passed=%s aborted=%s",
-        out.get("output_route"),
-        out.get("critic_iterations"),
-        out.get("critic_passed"),
-        bool(out.get("compilation_aborted")),
+        result.get("output_route"),
+        result.get("critic_iterations"),
+        result.get("critic_passed"),
+        bool(result.get("compilation_aborted")),
     )
-    return cast(GraphState, out)
+    return result
+
+
+def run_compiler(raw_prompt: str, settings: Settings, llm: LLMClient) -> GraphState:
+    """Synchronous entry point – runs the async compiler in a new event loop."""
+    return asyncio.run(run_compiler_async(raw_prompt, settings, llm))
