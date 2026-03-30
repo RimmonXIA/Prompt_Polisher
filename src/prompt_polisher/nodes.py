@@ -18,7 +18,7 @@ from prompt_polisher.state import (
     RadarAnalysis,
     RoutingDecision,
 )
-from prompt_polisher.text import looks_like_injection, preview_text
+from prompt_polisher.text import looks_like_injection, preview_text, strip_code_fence
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,6 @@ def _system_user(system: str, user: str) -> list[dict[str, str]]:
 
 def _parse_pydantic(model_cls: type[_M], text: str) -> _M | None:
     """Parse a JSON string into a Pydantic model, stripping code fences first."""
-    from prompt_polisher.text import strip_code_fence
-
     raw = strip_code_fence(text)
     try:
         return model_cls.model_validate_json(raw)
@@ -218,8 +216,6 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
     if settings.log_prompt_previews:
         logger.info("router input preview: %s", preview_text(user))
     text = await llm.achat(_system_user(system, user))
-
-    from prompt_polisher.text import strip_code_fence
 
     raw = strip_code_fence(text)
     try:

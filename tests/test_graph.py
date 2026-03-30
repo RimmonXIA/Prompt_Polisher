@@ -33,11 +33,7 @@ class CountingFakeLLM(FakeLLMClient):
         model: str | None = None,
     ) -> str:
         self.chat_calls += 1
-        return (
-            self.chat.__wrapped__(self, messages, temperature=temperature, model=model)
-            if hasattr(self.chat, "__wrapped__")
-            else super().chat(messages, temperature=temperature, model=model)
-        )  # noqa: E501
+        return super().chat(messages, temperature=temperature, model=model)
 
 
 def _happy_path_responses(*, with_prm: bool = False) -> list[str]:

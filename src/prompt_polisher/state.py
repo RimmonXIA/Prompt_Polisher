@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import operator
-from typing import Annotated, Literal, TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -88,6 +87,3 @@ class GraphState(TypedDict, total=False):
     compilation_aborted: bool
     abort_reason: str
     abort_detail: str
-
-    # Reducer: threat strings from radar accumulate without overwrite
-    _threat_log: Annotated[list[str], operator.add]

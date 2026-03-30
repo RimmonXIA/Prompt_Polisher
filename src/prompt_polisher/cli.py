@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -16,6 +17,7 @@ from prompt_polisher.llm import build_llm_client
 from prompt_polisher.logging_config import configure_logging
 from prompt_polisher.report import compilation_report_dict, render_compilation_report
 from prompt_polisher.state import GraphState
+from prompt_polisher.text import sanitize_user_input
 
 logger = logging.getLogger(__name__)
 
@@ -254,10 +256,6 @@ def main(argv: list[str] | None = None) -> int:
     _stream = not _machine_json_stdout(args) and sys.stderr.isatty()
 
     try:
-        import asyncio
-
-        from prompt_polisher.text import sanitize_user_input
-
         llm = build_llm_client(settings)
         sanitized = sanitize_user_input(raw.strip())
         result = asyncio.run(run_compiler_async(sanitized, settings, llm, stream_to_stderr=_stream))
