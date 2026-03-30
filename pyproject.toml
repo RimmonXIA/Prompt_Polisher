@@ -37,6 +37,9 @@ dependencies = [
     "langchain-core>=0.3.20",
     "rich>=13.0.0",
     "rich-argparse>=1.7.2",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "sse-starlette>=2.0.0",
 ]
 
 [project.optional-dependencies]

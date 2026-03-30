@@ -142,8 +142,10 @@ class SessionRenderer:
 
     def print_result_header(self) -> None:
         """Prints the top boundary of the result block before stdout writes the payload."""
-        self._console.print("[bold cyan]╭─ Final Compiled Prompt ──────────────────────────────────────────[/bold cyan]")
+        msg = "[bold cyan]╭─ Final Compiled Prompt " + "─" * 42 + "[/bold cyan]"
+        self._console.print(msg)
 
     def print_result_footer(self) -> None:
         """Prints the bottom boundary of the result block after stdout finishes the payload."""
-        self._console.print("[bold cyan]╰──────────────────────────────────────────────────────────────────[/bold cyan]\n")
+        msg = "[bold cyan]╰─" + "─" * 64 + "[/bold cyan]\n"
+        self._console.print(msg)

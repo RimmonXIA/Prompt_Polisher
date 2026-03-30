@@ -7,7 +7,7 @@ import logging
 
 from prompt_polisher.config import Settings
 from prompt_polisher.llm import LLMClient
-from prompt_polisher.state import PrmResult
+from prompt_polisher.state import PrmEvaluation
 from prompt_polisher.text import preview_text, strip_code_fence
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def evaluate_process_reward(
             logger.warning("External PRM endpoint failed: %s, falling back to LLM", exc)
 
     user = f"Original user intent (may be rough):\n{raw_intent}\n\nCompiled prompt draft:\n{draft}"
-    schema_json = json.dumps(PrmResult.model_json_schema(), ensure_ascii=False)
+    schema_json = json.dumps(PrmEvaluation.model_json_schema(), ensure_ascii=False)
     system_msg = (
         f"{_PRM_SYSTEM}\n\nYou MUST return ONLY valid JSON matching this schema:\n"
         f"```json\n{schema_json}\n```"
@@ -63,7 +63,7 @@ def evaluate_process_reward(
             model=settings.resolved_prm_model(),
         )
         raw = strip_code_fence(text)
-        data = PrmResult.model_validate_json(raw)
+        data = PrmEvaluation.model_validate_json(raw)
 
         score = data.score
         if score < 0.0:

@@ -45,7 +45,7 @@ class RoutingDecision(BaseModel):
     )
 
 
-class CompileResult(BaseModel):
+class CompileDraft(BaseModel):
     """Output of the Compile node: the draft prompt text."""
 
     draft: str = Field(default="", description="Compiled prompt draft.")
@@ -61,14 +61,14 @@ class CriticFeedback(BaseModel):
     )
 
 
-class PrmResult(BaseModel):
+class PrmEvaluation(BaseModel):
     """Output of the PRM model evaluation."""
 
     score: float = Field(default=0.0, description="Quality score between 0.0 and 1.0.")
     note: str = Field(default="", description="Reasoning for the assigned score.")
 
 
-class RouterResult(BaseModel):
+class RouterDeliverable(BaseModel):
     """Output of the Router node."""
 
     final_prompt: str = Field(default="", description="The final polished prompt.")

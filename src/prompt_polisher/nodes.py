@@ -11,12 +11,12 @@ from prompt_polisher.llm import LLMClient
 from prompt_polisher.prm import evaluate_process_reward
 from prompt_polisher.prompts_bundle import prompt_bundle
 from prompt_polisher.state import (
-    CompileResult,
+    CompileDraft,
     CriticFeedback,
     GraphState,
     OutputRoute,
     RadarAnalysis,
-    RouterResult,
+    RouterDeliverable,
     RoutingDecision,
 )
 from prompt_polisher.text import looks_like_injection, preview_text, strip_code_fence
@@ -118,9 +118,9 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
     user = f"Compile from:\n{json.dumps(payload, ensure_ascii=False)}"
     if settings.log_prompt_previews:
         logger.info("compile input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, CompileResult))
+    text = await llm.achat(_system_user(system, user, CompileDraft))
 
-    parsed: CompileResult | None = _parse_pydantic(CompileResult, text)
+    parsed: CompileDraft | None = _parse_pydantic(CompileDraft, text)
     draft = (parsed.draft.strip() if parsed else "") or text.strip() or state["raw_prompt"]
     return {"draft": draft}
 
@@ -224,11 +224,11 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
     )
     if settings.log_prompt_previews:
         logger.info("router input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, RouterResult))
+    text = await llm.achat(_system_user(system, user, RouterDeliverable))
 
-    parsed: RouterResult | None = _parse_pydantic(RouterResult, text)
+    parsed: RouterDeliverable | None = _parse_pydantic(RouterDeliverable, text)
     if not parsed:
-        parsed = RouterResult(
+        parsed = RouterDeliverable(
             final_prompt=draft,
             workflow_blueprint=bundle.router_fallback_workflow(route),
             dspy_sketch=bundle.router_fallback_dspy(),

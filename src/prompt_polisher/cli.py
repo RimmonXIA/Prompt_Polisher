@@ -12,6 +12,8 @@ from importlib.metadata import version as pkg_version
 from pathlib import Path
 from typing import Any
 
+from rich_argparse import RawDescriptionRichHelpFormatter
+
 from prompt_polisher.config import Settings, get_settings
 from prompt_polisher.graph import run_compiler_async
 from prompt_polisher.llm import build_llm_client
@@ -20,8 +22,6 @@ from prompt_polisher.report import compilation_report_dict, render_compilation_r
 from prompt_polisher.state import GraphState
 from prompt_polisher.text import sanitize_user_input
 from prompt_polisher.ux import SessionRenderer
-
-from rich_argparse import RawDescriptionRichHelpFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -109,10 +109,10 @@ def compilation_envelope(
             "detail": str(state.get("abort_detail") or "").strip() or None,
         }
     return {
-        "ok": not aborted,
-        "schemaVersion": ENVELOPE_SCHEMA_VERSION,
-        "data": data,
-        "error": err,
+        "compiled": not aborted,
+        "version": ENVELOPE_SCHEMA_VERSION,
+        "report": data,
+        "abort_reason": err,
     }
 
 
@@ -174,6 +174,27 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print version and exit",
     )
+    other_g.add_argument(
+        "--agent-card",
+        action="store_true",
+        help="Print A2A Agent Card JSON (spec §8.5) and exit",
+    )
+    other_g.add_argument(
+        "--serve",
+        action="store_true",
+        help="Start A2A HTTP Server (e.g. 'prompt-polisher --serve --port 8000')",
+    )
+    other_g.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="A2A Server host (default: 0.0.0.0)",
+    )
+    other_g.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="A2A Server port (default: 8000)",
+    )
     
     try:
         args = parser.parse_args(argv)
@@ -186,6 +207,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.version:
         print(_package_version())
+        return EXIT_SUCCESS
+
+    if args.serve:
+        import uvicorn
+
+        from prompt_polisher.a2a_server import app
+        
+        print(f"🚀 Starting A2A Server on {args.host}:{args.port}")
+        uvicorn.run(app, host=args.host, port=args.port)
+        return EXIT_SUCCESS
+
+    if args.agent_card:
+        from prompt_polisher.agent_card import build_agent_card
+
+        print(json.dumps(build_agent_card(), indent=2, ensure_ascii=False))
         return EXIT_SUCCESS
 
     settings = get_settings()
@@ -263,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR
     except Exception:
-        logger.exception("compiler failed")
+        logger.exception("pipeline error")
         print(f"{parser.prog}: error: unexpected failure during compilation", file=sys.stderr)
         return EXIT_ERROR
 

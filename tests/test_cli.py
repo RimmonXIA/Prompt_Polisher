@@ -111,10 +111,10 @@ def test_envelope_ok_and_schema(
     code = cli.main(["--envelope", "hi"])
     assert code == cli.EXIT_SUCCESS
     out = json.loads(capsys.readouterr().out)
-    assert out["ok"] is True
-    assert out["schemaVersion"] == cli.ENVELOPE_SCHEMA_VERSION
-    assert out["error"] is None
-    assert "deliverables" in out["data"]
+    assert out["compiled"] is True
+    assert out["version"] == cli.ENVELOPE_SCHEMA_VERSION
+    assert out["abort_reason"] is None
+    assert "deliverables" in out["report"]
 
 
 def test_envelope_aborted_ok_false_and_error(
@@ -127,9 +127,9 @@ def test_envelope_aborted_ok_false_and_error(
     code = cli.main(["--envelope", "hi"])
     assert code == cli.EXIT_COMPILATION_ABORTED
     out = json.loads(capsys.readouterr().out)
-    assert out["ok"] is False
-    assert out["error"]["code"] == "COMPILATION_ABORTED"
-    assert out["error"]["message"] == "threat_gate"
+    assert out["compiled"] is False
+    assert out["abort_reason"]["code"] == "COMPILATION_ABORTED"
+    assert out["abort_reason"]["message"] == "threat_gate"
 
 
 def test_prompt_polisher_agent_env_selects_envelope(
@@ -143,7 +143,7 @@ def test_prompt_polisher_agent_env_selects_envelope(
     code = cli.main(["hi"])
     assert code == cli.EXIT_SUCCESS
     out = json.loads(capsys.readouterr().out)
-    assert "schemaVersion" in out
+    assert "version" in out
 
 
 def test_version_exits_zero(capsys: pytest.CaptureFixture[str]) -> None:
@@ -225,3 +225,18 @@ def test_unreadable_file_returns_exit_error(tmp_path: object) -> None:
     finally:
         p.chmod(0o644)
     assert code == cli.EXIT_ERROR
+
+
+def test_agent_card_exits_zero_and_valid_json(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    code = cli.main(["--agent-card"])
+    assert code == cli.EXIT_SUCCESS
+    out = capsys.readouterr().out
+    card = json.loads(out)
+    assert card["name"] == "Prompt Polisher"
+    assert isinstance(card["skills"], list)
+    assert len(card["skills"]) > 0
+    assert card["skills"][0]["id"] == "prompt-compile"
+    assert card["supportedInterfaces"] == []
+    assert card["capabilities"]["streaming"] is False
