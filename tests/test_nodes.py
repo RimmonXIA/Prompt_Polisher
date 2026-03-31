@@ -39,7 +39,7 @@ def test_node_critic_invalid_json_logs_warning(
     llm = FakeLLMClient(["not valid json for critic"])
     draft = "<thinking>t</thinking><user_context>u</user_context>" + "x" * 30
     with caplog.at_level(logging.WARNING):
-        out = asyncio.run(node_critic({"raw_prompt": "r", "draft": draft}, llm, settings))  # type: ignore[arg-type]
+        out = asyncio.run(node_critic({"raw_prompt": "r", "draft": draft}, llm, settings))
     assert out["critic_passed"] is False
     assert out["critic_feedback"] == "critic_json_parse_error"
     assert "preview=" in caplog.text or "unparseable" in caplog.text

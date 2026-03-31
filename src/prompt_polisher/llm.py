@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from typing import Any, Protocol, cast, runtime_checkable
 
 import httpx
-import os
 from openai import APIConnectionError, AsyncOpenAI, OpenAI
 
 from prompt_polisher.config import Settings
@@ -42,7 +42,10 @@ class LLMClient(Protocol):
 
 def _normalize_socks_proxy() -> None:
     """Normalize 'socks://' to 'socks5://' in environment variables for httpx compatibility."""
-    for env_var in ["ALL_PROXY", "all_proxy", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"]:
+    proxy_vars = [
+        "ALL_PROXY", "all_proxy", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"
+    ]
+    for env_var in proxy_vars:
         val = os.environ.get(env_var)
         if val and val.startswith("socks://"):
             new_val = val.replace("socks://", "socks5://", 1)

@@ -234,7 +234,11 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
     user = json.dumps(
         {
             "output_route": route,
-            "draft": f"[GOLDEN DRAFT - PRIORITIZE] {draft}" if state.get("critic_passed") else draft,
+            "draft": (
+                f"[GOLDEN DRAFT - PRIORITIZE] {draft}"
+                if state.get("critic_passed")
+                else draft
+            ),
             "routing": routing,
             "radar": state.get("radar_analysis") or {},
             "raw_prompt": state["raw_prompt"],
