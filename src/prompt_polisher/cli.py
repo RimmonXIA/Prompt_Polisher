@@ -289,9 +289,10 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             if renderer:
-                was_fallback = (not bool(result.get("critic_passed"))) and (
-                    result.get("final_prompt", "").strip() == sanitized.strip()
-                )
+                # Robust comparison: ignore extra whitespace or trailing dots/newlines
+                f_p = result.get("final_prompt", "").strip().rstrip(". \n\r")
+                s_p = sanitized.strip().rstrip(". \n\r")
+                was_fallback = (not bool(result.get("critic_passed"))) and (f_p == s_p)
                 renderer.finish(
                     elapsed=time.monotonic() - t0,
                     was_aborted=bool(result.get("compilation_aborted")),

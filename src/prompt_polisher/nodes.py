@@ -130,19 +130,13 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
         draft = parsed.draft.strip()
     else:
         # Fallback for unparseable or empty draft field
-        # We don't want to blindly return the raw LLM output if it's JSON garbage.
-        # First, try a direct regex/manual search for a "draft" key if it was a JSON fail.
+        draft = text.strip()
+        # First, try a direct regex search for a "draft" key if it was a JSON fail.
         import re
         match = re.search(r'"draft"\s*:\s*"(.*?)"', text, re.DOTALL)
         if match:
             draft = match.group(1).encode().decode("unicode_escape", errors="ignore").strip()
-        else:
-            # If we still haven't found a draft, and the whole text looks like JSON,
-            # then the compiler node failed significantly. Fall back to raw prompt.
-            draft = text.strip()
-            if "{" in draft and "}" in draft and '"' in draft:
-                draft = state["raw_prompt"]
-            
+        
         if not draft:
             draft = state["raw_prompt"]
 
@@ -240,7 +234,7 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
     user = json.dumps(
         {
             "output_route": route,
-            "draft": draft,
+            "draft": f"[GOLDEN DRAFT - PRIORITIZE] {draft}" if state.get("critic_passed") else draft,
             "routing": routing,
             "radar": state.get("radar_analysis") or {},
             "raw_prompt": state["raw_prompt"],
