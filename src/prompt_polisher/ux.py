@@ -98,19 +98,25 @@ class SessionRenderer:
 
         base_msg = NODE_MESSAGES.get(node_name, node_name)
 
-        if node_name == "critic" and self._node_counts.get("critic", 0) > 1:
-            retry_n = self._node_counts["critic"] - 1
-            self._console.print(
-                f"[yellow]⚠️  审查未通过，触发第 {retry_n} 次自我修复回炉[/yellow] "
-                f"[dim]({elapsed:.1f}s)[/dim]"
-            )
-            if event and "critic_feedback" in event and not event.get("critic_passed"):
-                feedback = str(event["critic_feedback"]).strip().split('\n')[0]
-                if len(feedback) > 60:
-                    feedback = feedback[:57] + "..."
+        if node_name == "critic":
+            passed = bool(event.get("critic_passed")) if event else True
+            if not passed:
+                retry_n = self._node_counts.get("critic", 0)
                 self._console.print(
-                    f"    [dim]└──[/dim] [yellow]⚖️ 蓝军驳回意见：{feedback}[/yellow]"
+                    f"[yellow]⚠️  审查未通过，触发第 {retry_n} 次自我修复回炉[/yellow] "
+                    f"[dim]({elapsed:.1f}s)[/dim]"
                 )
+                if event and "critic_feedback" in event:
+                    feedback = str(event["critic_feedback"]).strip().split("\n")[0]
+                    if not feedback:
+                        feedback = "未提供具体驳回原因（自动回炉修复中）"
+                    if len(feedback) > 60:
+                        feedback = feedback[:57] + "..."
+                    self._console.print(
+                        f"    [dim]└──[/dim] [yellow]⚖️ 蓝军驳回意见：{feedback}[/yellow]"
+                    )
+            else:
+                self._console.print(f"[green]✅[/green] {base_msg} [dim]({elapsed:.1f}s)[/dim]")
         elif node_name == "early_abort":
             self._console.print("[red]🚨 安全闸门触发 — 编译已中止[/red]")
         else:
@@ -141,7 +147,9 @@ class SessionRenderer:
             self._current_status = None
         self._console.print("\n[bold red]🚨 流程被用户中断 (Ctrl+C)[/bold red]\n")
 
-    def finish(self, *, elapsed: float, was_aborted: bool = False) -> None:
+    def finish(
+        self, *, elapsed: float, was_aborted: bool = False, was_fallback: bool = False
+    ) -> None:
         if self._current_status is not None:
             self._current_status.stop()
             self._current_status = None
@@ -151,9 +159,10 @@ class SessionRenderer:
         else:
             critic_iters = self._node_counts.get("critic", 0)
             correction_note = f"，历经 {critic_iters} 次蓝军自检" if critic_iters > 1 else ""
+            fallback_note = " [dim](由于质量不佳已回退至原文本)[/dim]" if was_fallback else ""
             self._console.print(
                 f"\n[bold green]✨ 提示词编译完成 "
-                f"(历时 {elapsed:.1f}s{correction_note})[/bold green]\n"
+                f"(历时 {elapsed:.1f}s{correction_note}){fallback_note}[/bold green]\n"
             )
 
     def print_result_header(self) -> None:

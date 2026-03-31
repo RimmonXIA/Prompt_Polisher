@@ -43,17 +43,20 @@ def _system_user(
 
 def _parse_pydantic(model_cls: type[_M], text: str) -> _M | None:
     """Parse a JSON string into a Pydantic model, stripping code fences first."""
-    raw = strip_code_fence(text)
+    raw = strip_code_fence(text).strip()
     try:
         return model_cls.model_validate_json(raw)
     except Exception:
-        # Attempt to extract a JSON object even if surrounded by prose
+        # Find all potential JSON objects in the text.
+        # We look for the first '{' and the last matching '}' to be truly greedy.
         try:
-            start = raw.index("{")
-            end = raw.rindex("}") + 1
-            return model_cls.model_validate_json(raw[start:end])
+            start = raw.find("{")
+            end = raw.rfind("}") + 1
+            if start != -1 and end != -1 and end > start:
+                return model_cls.model_validate_json(raw[start:end])
         except Exception:
-            return None
+            pass
+        return None
 
 
 async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> dict[str, Any]:
@@ -65,14 +68,15 @@ async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> d
     if settings.log_prompt_previews:
         logger.info("radar input preview: %s", preview_text(user))
     text = await llm.achat(_system_user(system, user, RadarAnalysis))
-
     parsed: RadarAnalysis | None = _parse_pydantic(RadarAnalysis, text)
+
     if parsed is None:
         parsed = RadarAnalysis(
             negations_flipped=raw,
             threats=["json_parse_error"],
             alignment_risk="medium",
             summary=preview_text(text, 400),
+            linguistic_entropy="low" if len(raw.split()) < 10 else "medium",
         )
 
     if heuristic_injection:
@@ -91,13 +95,14 @@ async def node_routing(state: GraphState, llm: LLMClient, settings: Settings) ->
     if settings.log_prompt_previews:
         logger.info("routing input preview: %s", preview_text(user))
     text = await llm.achat(_system_user(system, user, RoutingDecision))
-
     parsed: RoutingDecision | None = _parse_pydantic(RoutingDecision, text)
+
     if parsed is None:
         parsed = RoutingDecision(
             complexity="medium",
             multi_node_recommended=True,
             anchor_persona="careful expert assistant",
+            audience_anchor="general public",
             rationale=preview_text(text, 400),
         )
     return {"routing_decision": parsed.model_dump()}
@@ -121,7 +126,26 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
     text = await llm.achat(_system_user(system, user, CompileDraft))
 
     parsed: CompileDraft | None = _parse_pydantic(CompileDraft, text)
-    draft = (parsed.draft.strip() if parsed else "") or text.strip() or state["raw_prompt"]
+    if parsed and parsed.draft.strip():
+        draft = parsed.draft.strip()
+    else:
+        # Fallback for unparseable or empty draft field
+        # We don't want to blindly return the raw LLM output if it's JSON garbage.
+        # First, try a direct regex/manual search for a "draft" key if it was a JSON fail.
+        import re
+        match = re.search(r'"draft"\s*:\s*"(.*?)"', text, re.DOTALL)
+        if match:
+            draft = match.group(1).encode().decode("unicode_escape", errors="ignore").strip()
+        else:
+            # If we still haven't found a draft, and the whole text looks like JSON,
+            # then the compiler node failed significantly. Fall back to raw prompt.
+            draft = text.strip()
+            if "{" in draft and "}" in draft and '"' in draft:
+                draft = state["raw_prompt"]
+            
+        if not draft:
+            draft = state["raw_prompt"]
+
     return {"draft": draft}
 
 
@@ -171,13 +195,16 @@ async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> 
 
     parsed: CriticFeedback | None = _parse_pydantic(CriticFeedback, text)
     if parsed is None:
-        logger.warning("critic returned unparseable output, preview=%s", preview_text(text, 400))
+        logger.warning(
+            "Critic node returned unparseable JSON or prose. Raw text preview: %s",
+            preview_text(text, 500),
+        )
         passed = False
         feedback = "critic_json_parse_error"
         steps: list[str] = []
     else:
         passed = parsed.passed
-        feedback = parsed.feedback
+        feedback = parsed.feedback or ("" if passed else "failure_reason_unspecified")
         steps = parsed.verification_steps
 
     out: dict[str, Any] = {

@@ -118,6 +118,43 @@ def test_node_critic_prm_passes_then_llm_critic(monkeypatch: pytest.MonkeyPatch)
     assert out.get("prm_score") == pytest.approx(0.9)
 
 
+def test_node_radar_linguistic_entropy_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    get_settings.cache_clear()
+    settings = get_settings()
+    # Mock LLM returning invalid JSON
+    llm = FakeLLMClient(["invalid-json"])
+    state = {"raw_prompt": "What's an LLM?"}
+    out = asyncio.run(node_radar(state, llm, settings))  # type: ignore[arg-type]
+    radar = out["radar_analysis"]
+    assert "linguistic_entropy" in radar
+    # Heuristic for "What's an LLM?" (4 words) should be "low"
+    assert radar["linguistic_entropy"] == "low"
+
+def test_node_routing_audience_anchor_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    get_settings.cache_clear()
+    settings = get_settings()
+    # Mock LLM returning invalid JSON
+    llm = FakeLLMClient(["invalid-json"])
+    state = {"raw_prompt": "q", "radar_analysis": {"summary": "s"}}
+    out = asyncio.run(node_routing(state, llm, settings))  # type: ignore[arg-type]
+    routing = out["routing_decision"]
+    assert "audience_anchor" in routing
+    assert routing["audience_anchor"] == "general public"
+
+def test_node_critic_fallback_feedback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    get_settings.cache_clear()
+    settings = get_settings()
+    # Mock LLM returning JSON with passed=False but empty feedback
+    llm = FakeLLMClient(['{"passed":false,"feedback":"","verification_steps":[]}'])
+    draft = "<thinking>t</thinking><user_context>u</user_context>" + "x" * 30
+    state = {"raw_prompt": "orig", "draft": draft}
+    out = asyncio.run(node_critic(state, llm, settings))  # type: ignore[arg-type]
+    assert out["critic_passed"] is False
+    assert out["critic_feedback"] == "failure_reason_unspecified"
+
 def test_node_compile_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     get_settings.cache_clear()

@@ -29,6 +29,10 @@ class RadarAnalysis(BaseModel):
             "Do not use AI/LLM jargon."
         )
     )
+    linguistic_entropy: Literal["low", "medium", "high"] = Field(
+        default="medium",
+        description="Heuristic measure of input complexity to guide vocabulary elevation.",
+    )
 
 
 class RoutingDecision(BaseModel):
@@ -42,6 +46,10 @@ class RoutingDecision(BaseModel):
     )
     anchor_persona: str = Field(
         default="careful expert assistant", description="Persona / style anchor for Compile."
+    )
+    audience_anchor: str = Field(
+        default="general public",
+        description="Target receptor context to stabilize tone and reasoning depth.",
     )
     rationale: str = Field(
         description=(

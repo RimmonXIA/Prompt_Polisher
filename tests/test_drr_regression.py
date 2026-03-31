@@ -68,8 +68,8 @@ def test_radar_system_prompt_trusted_author_default(monkeypatch: pytest.MonkeyPa
     llm = RecordingFakeLLM([radar_json])
     asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
-    assert "trusted prompt author" in system.lower()
-    assert "decode-reframe-response" in system.lower()
+    assert "verified architect" in system.lower()
+    assert "semantic integrity" in system.lower()
 
 
 def test_radar_prompt_defensive_when_author_trust_off(
@@ -84,7 +84,7 @@ def test_radar_prompt_defensive_when_author_trust_off(
     )
     asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
-    assert "untrusted" in system.lower()
+    assert "untrusted source protocol" in system.lower()
 
 
 def test_compile_system_prompt_preserves_methodology(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -100,8 +100,8 @@ def test_compile_system_prompt_preserves_methodology(monkeypatch: pytest.MonkeyP
     asyncio.run(node_compile(state, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     lower = system.lower()
-    assert "preserve the author's reasoning" in lower
-    assert "refusal" in lower or "security-auditor" in lower
+    assert "integrity of methodology" in lower
+    assert "defensive" in lower or "structural" in lower
 
 
 def test_compile_defensive_branch_when_author_trust_off(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -53,7 +53,7 @@ Subgraphs labeled **Layer 1–8** in [THEORY.zh.md](THEORY.zh.md) tie the produc
 | §2 Compute | Routing, compile | Single-shot under-powering; ICL format alignment |
 | §3 Sampling | Router (text only in-repo) | Format reliability; sampling tails |
 | §4 Closed loop | Critic | Error amplification along autoregressive chain |
-| §5 Manifold | Routing anchors | Vague, “average” outputs without anchoring |
+| §5 Manifold (§5.9–§5.10) | Routing anchors, Vocab elevation | Vague, “average” outputs; Style mirroring |
 | §6 Alignment | Radar | Over-refusal, alignment tax (term is overloaded) |
 | §7 Automation | Blueprint / DSPy sketch | Manual prompt tuning cost |
 | §8 Adversarial | Radar + Critic | Injection / jailbreak; **defense needs system design** |
@@ -87,6 +87,8 @@ For the full table and additional rows, see the **参考文献** section at the 
 | Topic | Pointer |
 | --- | --- |
 | Long-context U-shape | Liu et al., [Lost in the Middle](https://aclanthology.org/2024.tacl-1.9/) |
+| Style mirroring / Mimesis | Jain et al., [arXiv:2509.12517](https://arxiv.org/abs/2509.12517) |
+| Next-token prediction (TPG) | Li et al., [PMLR v238](https://proceedings.mlr.press/v238/li24f/li24f.pdf) |
 | RULER-style length | Hsieh et al., [arXiv:2404.06654](https://arxiv.org/abs/2404.06654) |
 | RAG positional bias re-check | Cuconasu et al., [arXiv:2505.15561](https://arxiv.org/abs/2505.15561) |
 | Chain-of-thought | Wei et al., [arXiv:2201.11903](https://arxiv.org/abs/2201.11903) |

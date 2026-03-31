@@ -289,9 +289,13 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             if renderer:
+                was_fallback = (not bool(result.get("critic_passed"))) and (
+                    result.get("final_prompt", "").strip() == sanitized.strip()
+                )
                 renderer.finish(
                     elapsed=time.monotonic() - t0,
                     was_aborted=bool(result.get("compilation_aborted")),
+                    was_fallback=was_fallback,
                 )
         except KeyboardInterrupt:
             if renderer:

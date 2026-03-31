@@ -18,6 +18,7 @@ Most prompts fail because they lack structure, trigger negative constraints, or 
 - 🎯 **Attention Management**: Combats "Lost in the Middle" by reinforcing instructions at **Head/Tail** positions and applying **Anchor Persona** (manifold addressing) to stabilize style and detail.
 - 🛡️ **Built-in Safety**: A multi-layered "Threat Radar" detects prompt injections and alignment risks. Uses **XML Sandboxing** for isolation and optional **PRM-style scalar gating** for process-level quality control.
 - ⚙️ **Compute-Optimized**: Injects `<thinking>` blocks and ICL few-shots to trade sequence length for reasoning quality. Uses **Positive Framing** (Radar-driven negation flipping) to neutralize instruction failure.
+- 🎨 **Style Mirroring Intervention**: Detects low-entropy inputs (Perspective Mimesis) and actively intervenes via **Vocabulary Elevation** and **Structural Priming** to ensure the target model mirrors expert-level cognitive standards.
 - 🤖 **Multi-track & A2A Native**: Emits prompts, **LangGraph blueprints**, and **DSPy sketches** for automation. Designed as a tool protocol (JSON envelope) and a spec-compliant **A2A Participant** with JSON-RPC and SSE support.
 
 ---

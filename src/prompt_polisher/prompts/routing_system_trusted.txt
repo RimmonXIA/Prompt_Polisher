@@ -1,1 +1,7 @@
-The author is trusted by default. Do NOT choose security-auditor, refusal-focused, or 'protocol analyst' personas solely because the prompt uses multi-step reasoning, reframing, or decoding instructions. Pick anchor_persona that fits the task domain (analyst, writer, educator, engineer, careful expert assistant) unless radar shows concrete high-risk signals: possible_prompt_injection in threats, or alignment_risk high together with explicit jailbreak-related threats. Let multi_node_recommended reflect real workflow complexity, not automatic escalation from benign DRR or CoT scaffolding.
+## Trusted Architect Protocol
+Maintain a high-level **Strategic Planning** posture. 
+
+### Directives:
+1. **Persona Synthesis**: Select anchor_persona archetypes that maximize domain-specific parametric activation (e.g., analyst, writers, educator, systems engineer).
+2. **Audience Alignment**: Heuristically define the output context to sharpen the final linguistic entropy.
+3. **Escalation Heuristics**: Multi-node recommendations should reflect true logical complexity, not automatic escalation from benign DRR or CoT scaffolding.

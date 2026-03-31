@@ -113,7 +113,7 @@ graph TD
 | §2 计算层（§2.4–§2.5） | Node 2 路由（算力/是否多步）、编译侧 CoT 与示范 | 单次调用推理断裂、依赖 ICL 对齐任务形态；**测试时算力扩展**、**Self-Consistency / 多样本聚合** |
 | §3 输出与采样（§3.6–§3.7） | Router、logits 与解码策略 | 结构化输出可靠性、采样长尾导致轨迹发散 |
 | §4 闭环反馈（§4.8） | Node 4 Critic、FAIL→重编译回路 | 自回归误差沿序列放大；**验证器 / PRM 引导的测试时搜索**（与 Critic 回路同构） |
-| §5 流形与锚点（§5.9） | Node 2 角色/风格锚定（隐喻层） | 输出「平庸」、风格与详略不稳 |
+| §5 流形与锚点（§5.9–§5.10） | Node 2 角色/风格锚定、Node 3 词量提升 | 输出「平庸」、风格镜像导致深度不足 |
 | §6 对齐护栏（§6.10） | Node 1 对齐与误拒、合规表述 | 误拒、对齐税、偏好策略差异 |
 | §7 连续与自动化（§7.11–§7.12） | 多轨产物中的软提示/DSPy 向自动化 | 离散手工调参成本高 |
 | §8 对抗边界（§8.13） | Node 1 注入嗅探、Node 4 红队与逃逸评估 | 提示词注入、越狱与防御边界；**注入防御基准与架构缓解**、**自适应攻击再评估** |
@@ -303,6 +303,26 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
     * **工程推论**（**Speculation**）：类似 “take a deep breath / step by step” 的措辞在 OPRO 等研究中可显著提升部分基准上的表现（与优化出的元提示相关）；将其归因于“Stack Overflow 悬赏帖式高质量配对语料”仅为**看似合理的假说**（plausible hypothesis），**非**已验证因果链。参见 Yang et al., *Large Language Models as Optimizers*, [arXiv:2309.03409](https://arxiv.org/abs/2309.03409)（通俗报道例：[Ars Technica](https://arstechnica.com/information-technology/2023/09/telling-ai-model-to-take-a-deep-breath-causes-math-scores-to-soar-in-study/)）。
 
 > **证据等级（§5.9）：** Speculation / Analogy（流形与锚点）+ Empirical（部分措辞/元提示有效，依模型与任务而变）。
+298: 
+299: * **§5.10 风格镜像与熵增干预 (Style Mirroring & Entropy Intervention)**
+300: 
+301:     * **干预机制**：词量提升与结构启动 (Vocabulary Elevation & Structural Priming)。
+302: 
+303:     * **现象描述（Empirical）**：LLM 存在 **风格镜像**（Style Mirroring / Perspective Mimesis）效应，即模型倾向于模仿输入的语言特征（词汇丰富度、句法复杂度、语气）。
+304: 
+305:     * **底层机理（Mechanistic）**：归因于自注意力机制中的「硬检索与软组合」（Hard Retrieval & Soft Composition）。Li et al. 指出，梯度下降让模型学会在数据中构建 **Token Priority Graphs (TPGs)**；对于低熵（Low-entropy）提示，模型会优先激活关联出的浅层/平庸词簇，导致「垃圾进，垃圾出」。
+306: 
+307:     * **干预策略（Engineering）**：
+308: 
+309:         * **词量提升 (Vocabulary Elevation)**：有意使用高熵、跨学科的精确词汇替代通用词。这能迫使注意力机制跳转到该词对应的「专家子流形（Expert Manifold）」，激活更深层的参数知识。
+310: 
+311:         * **结构启动 (Structural Priming)**：利用 Markdown 层级、逻辑连接词（如 "Conversely", "Synthetically"）等结构特征「引诱」模型启用对应的组织模式，从而镜像出更复杂的推理路径。
+312: 
+313:         * **受众锚定 (Audience Anchoring)**：超越单纯的角色扮演（Persona），通过显式指定 **接收者**（Audience）来锁定响应的成功标准，提供比单纯 persona 更稳定的语境锚点。
+314: 
+315:     * **参考文献**：Jain et al., *Extended AI Interactions Shape Sycophancy and Perspective Mimesis*, [arXiv:2509.12517](https://arxiv.org/abs/2509.12517)；Chen & Moscholios, *Using Prompts to Guide LLMs in Imitating a Real Person’s Language Style*, [arXiv:2410.03848](https://arxiv.org/abs/2410.03848)；Li et al., *Mechanics of Next Token Prediction with Self-Attention*, [PMLR v238 / arXiv:2403.01639](https://proceedings.mlr.press/v238/li24f/li24f.pdf)。
+316: 
+317: > **证据等级（§5.10）：** Empirical（风格镜像现象）+ Mechanistic（TPG 自动机机理）+ Engineering（干预策略）。
 
 ## 六、对齐护栏层：奖励机制与偏好触发（Alignment & Reward Triggering）
 
@@ -430,5 +450,7 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 | 后缀与注意力 | [arXiv:2506.12880](https://arxiv.org/abs/2506.12880) |
 | 检索 vs 参数记忆（冲突与取舍，示例） | Mallen et al., *When Not to Trust Language Models: Investigating Effectiveness of Parametric and Non-Parametric Memories*, ACL 2023, [ACL Anthology](https://aclanthology.org/2023.acl-long.546) / [arXiv:2212.10511](https://arxiv.org/abs/2212.10511) |
 | 元提示 / OPRO（措辞优化） | Yang et al., *Large Language Models as Optimizers*, [arXiv:2309.03409](https://arxiv.org/abs/2309.03409) |
+| 风格镜像 / 观点模仿 (Mimesis) | Jain et al., [arXiv:2509.12517](https://arxiv.org/abs/2509.12517)；Chen et al., [arXiv:2410.03848](https://arxiv.org/abs/2410.03848) |
+| 下一个 Token 预测机制 (TPG) | Li et al., [PMLR v238](https://proceedings.mlr.press/v238/li24f/li24f.pdf)；[arXiv:2403.01639](https://arxiv.org/abs/2403.01639) |
 | 生成链马尔可夫视角（参考） | *Markovian Generation Chains in LLMs* [arXiv:2603.11228](https://arxiv.org/abs/2603.11228) |
 

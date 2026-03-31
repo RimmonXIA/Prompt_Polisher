@@ -156,11 +156,13 @@ def render_compilation_report(
         lines.append(_bullet_line("Stopped at max critic iterations", p.halted))
         if p.radar:
             lines.append(_bullet_line("Alignment risk (radar)", p.radar.get("alignment_risk")))
+            lines.append(_bullet_line("Linguistic entropy", p.radar.get("linguistic_entropy")))
             threats = p.radar.get("threats")
             if isinstance(threats, list) and threats:
                 lines.append(f"- **Threats:** {', '.join(str(t) for t in threats)}")
         if p.routing:
             lines.append(_bullet_line("Complexity (routing)", p.routing.get("complexity")))
+            lines.append(_bullet_line("Audience anchor", p.routing.get("audience_anchor")))
             lines.append(
                 _bullet_line("Multi-node recommended", p.routing.get("multi_node_recommended"))
             )

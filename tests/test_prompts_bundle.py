@@ -15,7 +15,7 @@ from prompt_polisher.prompts_bundle import clear_prompt_bundle_cache, prompt_bun
 def test_package_prompt_txt_readable() -> None:
     root = resources.files("prompt_polisher") / "prompts"
     base = root.joinpath("radar_system_base.txt").read_text(encoding="utf-8")
-    assert "Node1 Radar" in base
+    assert "Node 1" in base
     assert root.joinpath("gate_abort_workflow_blueprint.txt").is_file()
 
 
@@ -72,7 +72,7 @@ def test_prompts_dir_overrides_single_file(
     asyncio.run(node_radar({"raw_prompt": "hello"}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     assert marker in system
-    assert "Node1 Radar" in system
+    assert "Node 1" in system
 
     monkeypatch.delenv("PROMPTS_DIR", raising=False)
     get_settings.cache_clear()

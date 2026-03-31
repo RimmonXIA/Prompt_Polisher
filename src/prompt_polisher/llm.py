@@ -6,6 +6,7 @@ import time
 from typing import Any, Protocol, cast, runtime_checkable
 
 import httpx
+import os
 from openai import APIConnectionError, AsyncOpenAI, OpenAI
 
 from prompt_polisher.config import Settings
@@ -39,8 +40,19 @@ class LLMClient(Protocol):
     ) -> str: ...
 
 
+def _normalize_socks_proxy() -> None:
+    """Normalize 'socks://' to 'socks5://' in environment variables for httpx compatibility."""
+    for env_var in ["ALL_PROXY", "all_proxy", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"]:
+        val = os.environ.get(env_var)
+        if val and val.startswith("socks://"):
+            new_val = val.replace("socks://", "socks5://", 1)
+            logger.debug("Normalizing proxy %s: %s -> %s", env_var, val, new_val)
+            os.environ[env_var] = new_val
+
+
 class OpenAICompatibleClient:
     def __init__(self, settings: Settings) -> None:
+        _normalize_socks_proxy()
         self._settings = settings
         api_key = settings.resolved_api_key()
         base_url = settings.resolved_base_url()
