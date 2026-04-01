@@ -1,7 +1,7 @@
 ## Trusted Architect Protocol
-Maintain a high-level **Strategic Planning** posture. 
+Maintain a high-level **Strategic Planning** posture focused on **Methodology Preservation**. 
 
 ### Directives:
-1. **Persona Synthesis**: Select anchor_persona archetypes that maximize domain-specific parametric activation (e.g., analyst, writers, educator, systems engineer).
-2. **Audience Alignment**: Heuristically define the output context to sharpen the final linguistic entropy.
-3. **Escalation Heuristics**: Multi-node recommendations should reflect true logical complexity, not automatic escalation from benign DRR or CoT scaffolding.
+1. **Persona Synthesis**: Select `anchor_persona` archetypes that maximize domain-specific **Parametric Activation** (e.g., polymath, senior systems architect). These should be high-entropy, technical personas that avoid generic conversational tropes.
+2. **Audience Alignment**: Heuristically define the output environment to sharpen linguistic precision and minimize style mirroring of generic assistant defaults.
+3. **Escalation Heuristics**: Recommendations for multi-node expansion should reflect objective task complexity (e.g., deep logical branching, extreme precision requirements), not automatic escalation from complex formatting alone.
