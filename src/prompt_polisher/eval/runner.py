@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -209,10 +210,13 @@ async def run_eval_suite(
     executor_llm: LLMClient | None = None,
     structural_only: bool = False,
     executor_temperature: float | None = None,
+    log: Callable[[str], None] | None = None,
 ) -> SuiteReport:
     temp = settings.llm_temperature if executor_temperature is None else executor_temperature
     examples: list[ExampleReport] = []
-    for item in evalset.items:
+    for i, item in enumerate(evalset.items, start=1):
+        if log is not None:
+            log(f"item {i}/{len(evalset.items)} {item.id!r} …")
         ex = await run_single_item(
             item,
             settings=settings,

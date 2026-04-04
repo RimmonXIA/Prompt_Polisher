@@ -8,8 +8,7 @@ OutputRoute = Literal["instance", "template", "dspy"]
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 – Pydantic models for structured node output
-# These are the canonical data shapes returned by each LLM node.
+# Structured node outputs: Pydantic models for each LLM node.
 # ---------------------------------------------------------------------------
 
 
@@ -97,7 +96,7 @@ class RouterDeliverable(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 – Reducer-aware LangGraph state (Annotated fields for auto-merge)
+# LangGraph workflow state (TypedDict; node payloads as plain dicts).
 # ---------------------------------------------------------------------------
 
 

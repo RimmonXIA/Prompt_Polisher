@@ -1,6 +1,6 @@
 # Prompt Polisher
 
-> Open-source **Python 3.11+ CLI** that runs a **LangGraph** workflow to compile rough user intents into structured prompts: radar → optional threat gate → routing → compile → critic → deliverables (final prompt, blueprint, DSPy-style sketch). Outputs plain text; use **`-m`** for markdown reports or **`--envelope`** for structured, agent-friendly JSON. Phase 1 adds **`prompt-polisher-eval`** and **`evalsets/v1/`** for structural checks and optional Raw vs compiled scoring. Canonical theory (Chinese) and an English bridge live under `docs/`. **Downstream success and safety depend on your model and system design**, not this tool alone.
+> Open-source **Python 3.11+ CLI** that runs a **LangGraph** workflow to compile rough user intents into structured prompts: radar → optional threat gate → routing → compile → critic → deliverables (final prompt, blueprint, DSPy-style sketch). Outputs plain text; use **`-m`** for markdown reports or **`--envelope`** for structured, agent-friendly JSON. The repo also ships **`prompt-polisher-eval`** and **`evalsets/bundled/`** for structural checks and optional Raw vs compiled scoring. Canonical theory (Chinese) and an English bridge live under `docs/`. **Downstream success and safety depend on your model and system design**, not this tool alone.
 
 ## Start here
 

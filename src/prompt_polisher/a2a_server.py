@@ -27,8 +27,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Prompt Polisher A2A Server")
 
-# In-memory store for Phase 2 demo purposes
-# In production, this should be a persistent store (Redis/DB)
+# In-memory task store (demo / dev). Production should use a persistent backend.
 tasks: dict[str, dict[str, Any]] = {}
 
 
@@ -241,9 +240,8 @@ async def stream_task_events(
     llm = build_llm_client(settings)
 
     try:
-        # For simplicity in Phase 2, we simulate incremental status updates
-        # since run_compiler_async is a single call.
-        # In Phase 3, we would expose the LangGraph stream directly.
+        # Simulate incremental status: run_compiler_async is one call, not streamed.
+        # Future: wire LangGraph stream events to SSE if needed.
         yield _sse_update(task_id, rpc_id, "ST_RADAR", "Running Radar analysis...")
         await asyncio.sleep(0.5)
 

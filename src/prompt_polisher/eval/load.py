@@ -31,12 +31,12 @@ def resolve_evalset_dir(explicit: Path | None = None) -> Path:
 
     cwd = Path.cwd().resolve()
     for base in [cwd, *cwd.parents]:
-        candidate = base / "evalsets" / "v1"
+        candidate = base / "evalsets" / "bundled"
         if (candidate / "manifest.json").is_file() and (candidate / "items.jsonl").is_file():
             return candidate.resolve()
 
     msg = (
-        "Could not find evalsets/v1 (manifest.json + items.jsonl). "
+        "Could not find evalsets/bundled (manifest.json + items.jsonl). "
         "Run from the repository root, set PROMPT_POLISHER_EVALSET, or pass --evalset-dir."
     )
     raise FileNotFoundError(msg)

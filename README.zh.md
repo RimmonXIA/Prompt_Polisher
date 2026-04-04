@@ -118,12 +118,12 @@ uv run prompt-polisher --serve --port 8000
 | **Node 3: 编译 (Compile)** | `nodes.py` (`node_compile`) |
 | **Node 4: 审查 (Critic)** | `nodes.py` (`node_critic`) |
 | **全局状态 (Global State)** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
-| **评测基线 (Phase 1)** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/v1/`](evalsets/v1/README.md) |
+| **评测基线** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
 
 
-### 评测基线 (Phase 1)
+### 评测基线
 
-`evalsets/v1/` 提供版本化任务：**Tier A** 仅跑编译图并检查结构化期望；**Tier B**（可选）对 `items.jsonl` 中配置了 `gold` 的条目做 **原始意图 vs 编译稿** 的成对执行器打分。
+`evalsets/bundled/` 提供版本化任务：**Tier A** 仅跑编译图并检查结构化期望；**Tier B**（可选）对 `items.jsonl` 中配置了 `gold` 的条目做 **原始意图 vs 编译稿** 的成对执行器打分。
 
 ```bash
 uv run prompt-polisher-eval --help
@@ -132,7 +132,7 @@ uv run prompt-polisher-eval --structural-only --fail-on-structural
 uv run prompt-polisher-eval --output eval-report.json
 ```
 
-可用 `PROMPT_POLISHER_EVALSET` 或 `--evalset-dir` 指定目录。说明见 [`evalsets/v1/README.md`](evalsets/v1/README.md)；可选工作流：[`eval-live.yml`](.github/workflows/eval-live.yml)。
+可用 `PROMPT_POLISHER_EVALSET` 或 `--evalset-dir` 指定目录。说明见 [`evalsets/bundled/README.md`](evalsets/bundled/README.md)；可选工作流：[`eval-live.yml`](.github/workflows/eval-live.yml)。
 
 
 > [!TIP]
@@ -157,7 +157,7 @@ Prompt Polisher 是一个 [全合规 A2A 参与者](https://github.com/a2aprojec
 - **服务发现**: `uv run prompt-polisher --agent-card` 或访问 `GET /.well-known/agent-card.json`
 - **A2A 服务器**: `uv run prompt-polisher --serve --port 8000`
 - **服务接口**: 支持 `SendMessage`, `GetTask`, `ListTasks` (列出任务) 以及 `SendStreamingMessage` (SSE) 等 JSON-RPC 2.0 标准方法。
-- **合规状态**: 已完成 Phase 2 完整实现。
+- **合规状态**: 已完成 A2A 参与者全功能实现（含实时协议能力）。
 
 ---
 

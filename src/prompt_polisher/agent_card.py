@@ -22,9 +22,8 @@ def build_agent_card() -> dict[str, object]:
     """Return a spec-compliant A2A Agent Card dict.
 
     Fields follow §4.4.1 AgentCard and §8.5 Sample Agent Card.
-    ``supportedInterfaces`` is intentionally empty: Prompt Polisher
-    is a CLI tool, not an HTTP service. A future Phase 2 can populate
-    this field when an A2A HTTP server wrapper is added.
+    ``supportedInterfaces`` is empty here for CLI/static use. The live
+    FastAPI A2A server overwrites this with the JSON-RPC endpoint URL.
     """
     return {
         "name": "Prompt Polisher",

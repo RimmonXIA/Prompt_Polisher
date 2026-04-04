@@ -63,7 +63,7 @@ def _happy_path_responses() -> list[str]:
 
 
 def _repo_evalset_dir() -> Path:
-    return Path(__file__).resolve().parents[1] / "evalsets" / "v1"
+    return Path(__file__).resolve().parents[1] / "evalsets" / "bundled"
 
 
 def test_load_evalset_from_repo() -> None:

@@ -18,34 +18,52 @@ from prompt_polisher.llm import build_llm_client
 RawDescriptionRichHelpFormatter.styles["argparse.groups"] = "bold cyan"
 
 _EVAL_HELP_DESC = """\
-[bold]prompt-polisher-eval[/bold] — Phase 1 trust-base evaluation for Prompt Polisher.
+[bold]prompt-polisher-eval[/bold] — Run the bundled eval suite; print one JSON report to stdout.
 
-[bold]What it does[/bold]
-  • [bold]Tier A[/bold]: Run the compile graph per item; check [dim]structural_expect[/dim] in
-    [dim]items.jsonl[/dim] (critic pass, abort, non-empty [dim]final_prompt[/dim], …).
-  • [bold]Tier B[/bold] (unless [bold]--structural-only[/bold]): When [dim]gold[/dim] is not
-    [dim]none[/dim], call the executor twice per item — [bold]raw[/bold] intent vs
-    [bold]compiled[/bold] [dim]final_prompt[/dim] — and score (exact, contains, JSON keys, …).
+[bold]Important[/bold]  Default is [bold]full[/bold] eval (many API calls per item).
+  JSON is printed [bold]once at the end[/bold] — stdout may look idle for minutes.
+  Stderr shows a startup line by default; add [bold]-v[/bold] for each item.
 
-[bold]Examples[/bold]
-  $ prompt-polisher-eval --structural-only --fail-on-structural
-  $ prompt-polisher-eval --evalset-dir ./evalsets/v1 --output report.json
-  $ PROMPT_POLISHER_EVALSET=/path/to/v1 prompt-polisher-eval --structural-only
+[bold]Quick start[/bold] (needs a working LLM — same credentials as [dim]prompt-polisher[/dim])
+  1. [bold]cd[/bold] to the repo root so [dim]evalsets/bundled[/dim] is found, OR set
+     [bold]PROMPT_POLISHER_EVALSET[/bold] / [bold]--evalset-dir[/bold].
+  2. Configure [dim].env[/dim] (see [dim].env.example[/dim]), e.g. [dim]OPENAI_API_KEY[/dim].
+  3. Run:
+       [dim]$ uv run prompt-polisher-eval --structural-only[/dim]
+     Optional: [bold]--output report.json[/bold]. For CI, [bold]--fail-on-structural[/bold] exits
+     [yellow]2[/yellow] when a structural check fails.
+  4. Full run (more API calls for items with [dim]gold[/dim]):
+       [dim]$ uv run prompt-polisher-eval --output report.json[/dim]
+  No API key? Offline: [dim]uv run pytest tests/test_eval.py[/dim]
+
+[bold]What it measures[/bold]
+  • [bold]Tier A[/bold]: After compile, check [dim]structural_expect[/dim] in
+    [dim]items.jsonl[/dim].
+  • [bold]Tier B[/bold] (if not [bold]--structural-only[/bold]): Score [bold]raw[/bold] vs
+    [bold]compiled[/bold] outputs for non-[dim]none[/dim] [dim]gold[/dim].
+
+[bold]More examples[/bold]
+  $ prompt-polisher-eval --evalset-dir ./evalsets/bundled --structural-only --fail-on-structural
+  $ PROMPT_POLISHER_EVALSET=/path/to/evalsets/bundled prompt-polisher-eval --structural-only
 """
 
 _EVAL_HELP_EPILOG = """\
 [bold cyan]Eval set layout[/bold cyan]
   Directory with [bold]manifest.json[/bold] and [bold]items.jsonl[/bold] (one JSON object per line).
-  See [dim]evalsets/v1/README.md[/dim].
+  See [dim]evalsets/bundled/README.md[/dim].
 
 [bold cyan]Discovery order[/bold cyan]
   1. [bold]--evalset-dir[/bold] if passed
   2. [bold]PROMPT_POLISHER_EVALSET[/bold]
-  3. Walk upward from CWD for [dim]evalsets/v1[/dim]
+  3. Walk upward from CWD for [dim]evalsets/bundled[/dim]
 
 [bold cyan]Credentials[/bold cyan]
   Same [dim].env[/dim] as the main CLI ([dim]OPENAI_API_KEY[/dim], [dim]LLM_MODEL[/dim], …).
   Tier A still runs the full compile pipeline (several LLM calls per item).
+
+[bold cyan]Output timing[/bold cyan]
+  The full JSON prints once at the end. Until then you may see only stderr (default one-line
+  banner, or [bold]-v[/bold] per-item lines).
 
 [bold cyan]Exit codes[/bold cyan]
   [green]0[/green]  Success (with [bold]--fail-on-structural[/bold]: all structural checks passed).
@@ -53,7 +71,7 @@ _EVAL_HELP_EPILOG = """\
   [yellow]2[/yellow]  Tier A regression ([bold]--fail-on-structural[/bold] only).
 
 [bold cyan]See also[/bold cyan]
-  [dim]README.md[/dim] (Evaluation Phase 1); [dim]docs/THEORY.en.md[/dim] (harness, non-claims).
+  [dim]README.md[/dim] (Evaluation harness); [dim]docs/THEORY.en.md[/dim] (harness, non-claims).
 """
 
 
@@ -79,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         metavar="DIR",
-        help="Explicit directory (default: PROMPT_POLISHER_EVALSET or discover evalsets/v1)",
+        help="Explicit directory (default: PROMPT_POLISHER_EVALSET or discover evalsets/bundled)",
     )
 
     run_g = parser.add_argument_group("Run mode")
@@ -87,6 +105,18 @@ def main(argv: list[str] | None = None) -> int:
         "--structural-only",
         action="store_true",
         help="Skip Tier B: no executor LLM calls (only compile graph + structural checks)",
+    )
+    run_g.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print per-item progress lines to stderr (stdout stays JSON only)",
+    )
+    run_g.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="No stderr banner or progress (stdout JSON only when done)",
     )
 
     out_g = parser.add_argument_group("Output & exit policy")
@@ -139,6 +169,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"prompt-polisher-eval: {exc}", file=sys.stderr)
         return 1
 
+    log_fn = None
+    if args.verbose and not args.quiet:
+
+        def _log_progress(msg: str) -> None:
+            print(msg, file=sys.stderr)
+
+        log_fn = _log_progress
+    if not args.quiet:
+        mode = "structural-only" if args.structural_only else "full"
+        n = len(evalset.items)
+        print(
+            f"prompt-polisher-eval: starting {n} item(s), mode={mode!r}. "
+            "JSON on stdout when done.",
+            file=sys.stderr,
+        )
+
     report = asyncio.run(
         run_eval_suite(
             evalset,
@@ -146,6 +192,7 @@ def main(argv: list[str] | None = None) -> int:
             compile_llm=compile_llm,
             executor_llm=executor_llm,
             structural_only=args.structural_only,
+            log=log_fn,
         )
     )
 
@@ -156,6 +203,7 @@ def main(argv: list[str] | None = None) -> int:
         args.output.write_text(text, encoding="utf-8")
     else:
         print(text)
+        sys.stdout.flush()
 
     if args.fail_on_structural and data["counts"]["tier_a_failed"] > 0:
         return 2

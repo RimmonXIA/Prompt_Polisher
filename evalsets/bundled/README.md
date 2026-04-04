@@ -1,6 +1,6 @@
-# Eval set v1 (Phase 1)
+# Bundled eval set (regression tasks)
 
-Versioned tasks under `manifest.json` + `items.jsonl` for **Tier A** structural checks and optional **Tier B** Raw vs Compiled scoring.
+Tasks under `manifest.json` + `items.jsonl` for **Tier A** structural checks and optional **Tier B** Raw vs Compiled scoring.
 
 ## Run
 
@@ -19,6 +19,10 @@ uv run prompt-polisher-eval --structural-only --fail-on-structural
 uv run prompt-polisher-eval
 ```
 
+### Why does nothing appear on the terminal?
+
+A **default** run (no `--structural-only`) calls the API many times; the **JSON report is printed once at the end**, so **stdout can look empty for minutes**. Watch **stderr**: you should see a one-line `prompt-polisher-eval: starting …` message. Use **`-v`** for per-item progress, or **`--quiet`** to suppress stderr if you only want JSON.
+
 ### Exit codes (`prompt-polisher-eval`)
 
 | Code | Meaning |
@@ -30,7 +34,7 @@ uv run prompt-polisher-eval
 Override location:
 
 ```bash
-export PROMPT_POLISHER_EVALSET=/path/to/evalsets/v1
+export PROMPT_POLISHER_EVALSET=/path/to/evalsets/bundled
 uv run prompt-polisher-eval --structural-only
 ```
 

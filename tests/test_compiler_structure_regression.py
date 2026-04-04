@@ -1,4 +1,4 @@
-"""F1 phase C: anchor expected compile/critic/router shape with FakeLLM (no real API)."""
+"""Regression: anchor expected compile/critic/router shape with FakeLLM (no real API)."""
 
 from __future__ import annotations
 

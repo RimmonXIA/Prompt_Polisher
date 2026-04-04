@@ -118,12 +118,12 @@ The standard JSON envelope includes:
 | **Node 3: Compile** | `nodes.py` (`node_compile`) |
 | **Node 4: Critic** | `nodes.py` (`node_critic`) |
 | **Global State** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
-| **Eval harness (Phase 1)** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/v1/`](evalsets/v1/README.md) |
+| **Eval harness** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
 
 
-### Evaluation (Phase 1)
+### Evaluation harness
 
-Versioned tasks under `evalsets/v1/` with **Tier A** structural checks (compile graph only) and optional **Tier B** paired **Raw vs Compiled** executor scoring where `gold` is set in `items.jsonl`.
+Versioned tasks under `evalsets/bundled/` with **Tier A** structural checks (compile graph only) and optional **Tier B** paired **Raw vs Compiled** executor scoring where `gold` is set in `items.jsonl`.
 
 ```bash
 # Rich CLI reference (tiers, discovery, exit codes, examples)
@@ -136,7 +136,7 @@ uv run prompt-polisher-eval --structural-only --fail-on-structural
 uv run prompt-polisher-eval --output eval-report.json
 ```
 
-Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: [`evalsets/v1/README.md`](evalsets/v1/README.md). Optional CI: [`.github/workflows/eval-live.yml`](.github/workflows/eval-live.yml).
+Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: [`evalsets/bundled/README.md`](evalsets/bundled/README.md). Optional CI: [`.github/workflows/eval-live.yml`](.github/workflows/eval-live.yml).
 
 
 > [!TIP]
@@ -161,7 +161,7 @@ Prompt Polisher is a [Full A2A Participant](https://github.com/a2aproject/A2A) (
 - **Discovery**: `uv run prompt-polisher --agent-card` or `GET /.well-known/agent-card.json`
 - **A2A Server**: `uv run prompt-polisher --serve --port 8000`
 - **Service API**: JSON-RPC 2.0 endpoints for `SendMessage`, `GetTask`, `ListTasks`, and `SendStreamingMessage` (SSE).
-- **Compliance Status**: Full Phase 2 implementation.
+- **Compliance Status**: Full A2A participant implementation (live protocol features).
 
 ---
 
