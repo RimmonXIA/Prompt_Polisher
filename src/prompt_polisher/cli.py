@@ -51,6 +51,9 @@ _HELP_EPILOG = """\
     (Payload on stdout, logs on stderr)
   [dim]• Env:[/dim]  [bold]PROMPT_POLISHER_AGENT=1[/bold] forces `--envelope` output.
   [dim]• Docs:[/dim] See "Agents and automation" in README.md for schema.
+
+[bold cyan]Evaluation harness[/bold cyan]
+  [dim]•[/dim] [bold]prompt-polisher-eval --help[/bold] — Phase 1 eval CLI reference.
 """
 
 

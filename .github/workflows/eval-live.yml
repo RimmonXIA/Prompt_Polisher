@@ -1,0 +1,43 @@
+# Optional live eval (Tier B uses the LLM API). Manual trigger; skips cleanly when OPENAI_API_KEY is unset.
+name: Eval live
+
+on:
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.0"
+
+      - name: Python
+        run: uv python install 3.12
+
+      - name: Sync
+        run: uv sync --all-groups --frozen
+
+      - name: Full eval (Tier A + Tier B where gold is set)
+        id: eval
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_PROVIDER: openai
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "OPENAI_API_KEY not set; skipping live eval."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          uv run prompt-polisher-eval --output eval-report.json
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload report
+        if: steps.eval.outputs.created == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval-report.json

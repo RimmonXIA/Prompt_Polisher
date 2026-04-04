@@ -118,6 +118,21 @@ uv run prompt-polisher --serve --port 8000
 | **Node 3: 编译 (Compile)** | `nodes.py` (`node_compile`) |
 | **Node 4: 审查 (Critic)** | `nodes.py` (`node_critic`) |
 | **全局状态 (Global State)** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
+| **评测基线 (Phase 1)** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/v1/`](evalsets/v1/README.md) |
+
+
+### 评测基线 (Phase 1)
+
+`evalsets/v1/` 提供版本化任务：**Tier A** 仅跑编译图并检查结构化期望；**Tier B**（可选）对 `items.jsonl` 中配置了 `gold` 的条目做 **原始意图 vs 编译稿** 的成对执行器打分。
+
+```bash
+uv run prompt-polisher-eval --help
+uv run prompt-polisher-eval -V
+uv run prompt-polisher-eval --structural-only --fail-on-structural
+uv run prompt-polisher-eval --output eval-report.json
+```
+
+可用 `PROMPT_POLISHER_EVALSET` 或 `--evalset-dir` 指定目录。说明见 [`evalsets/v1/README.md`](evalsets/v1/README.md)；可选工作流：[`eval-live.yml`](.github/workflows/eval-live.yml)。
 
 
 > [!TIP]

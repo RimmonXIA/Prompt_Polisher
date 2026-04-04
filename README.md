@@ -118,6 +118,25 @@ The standard JSON envelope includes:
 | **Node 3: Compile** | `nodes.py` (`node_compile`) |
 | **Node 4: Critic** | `nodes.py` (`node_critic`) |
 | **Global State** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
+| **Eval harness (Phase 1)** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/v1/`](evalsets/v1/README.md) |
+
+
+### Evaluation (Phase 1)
+
+Versioned tasks under `evalsets/v1/` with **Tier A** structural checks (compile graph only) and optional **Tier B** paired **Raw vs Compiled** executor scoring where `gold` is set in `items.jsonl`.
+
+```bash
+# Rich CLI reference (tiers, discovery, exit codes, examples)
+uv run prompt-polisher-eval --help
+
+# No extra executor LLM calls — suitable for fast regression checks
+uv run prompt-polisher-eval --structural-only --fail-on-structural
+
+# Full run: Tier B uses the same API as compilation (extra cost)
+uv run prompt-polisher-eval --output eval-report.json
+```
+
+Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: [`evalsets/v1/README.md`](evalsets/v1/README.md). Optional CI: [`.github/workflows/eval-live.yml`](.github/workflows/eval-live.yml).
 
 
 > [!TIP]

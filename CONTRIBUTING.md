@@ -29,6 +29,8 @@ uv sync --extra langfuse
 uv run pytest
 uv run ruff check src tests scripts
 uv run mypy src
+# Optional: end-to-end eval harness (needs working LLM credentials; compile still calls the API)
+uv run prompt-polisher-eval --structural-only --fail-on-structural
 ```
 
 Optional (needs network): verify reference URLs in [docs/THEORY.zh.md](docs/THEORY.zh.md) with `uv run python scripts/check_theory_urls.py` (use `--list-only` to skip HTTP).

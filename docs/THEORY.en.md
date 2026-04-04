@@ -43,6 +43,7 @@ Subgraphs labeled **Layer 1–8** in [THEORY.zh.md](THEORY.zh.md) tie the produc
 | §5 Anchor / manifold | `anchor_persona` and wording | Measurable geometric “projection” |
 | §6 Alignment, over-refusal | Radar `alignment_risk`; gate policies | Deployment-specific RM details |
 | §7 Soft prompts, DSPy | `dspy_sketch` text | Trainable soft prompts; runnable DSPy |
+| Phase 1 eval baseline | `evalsets/v1`, `prompt-polisher-eval` (Tier A structure; optional Tier B paired Raw vs compiled + gold) | Full domain benchmarks; universal claims |
 | §8 Injection, jailbreak | Heuristics + Radar JSON; shallow XML rules | CaMeL-style isolation; adaptive attack benchmarks |
 
 ## Theory map (compact)
@@ -72,6 +73,10 @@ Subgraphs labeled **Layer 1–8** in [THEORY.zh.md](THEORY.zh.md) tie the produc
 - **Sole defense** against prompt injection or jailbreaks in agentic / RAG systems — you still need **architecture** (trust boundaries, tool policy, monitoring), not only compiled prompts.
 - **Replacing evaluation** — Use explicit benchmarks and human/LLM-judge rubrics for *your* tasks; this CLI does not ship a claim of SOTA on downstream metrics.
 - **Constrained decoding in-process** — If you need grammar / logit masking **inside** this package, implement or call a decoder stack downstream; this repo does not embed Outlines-like engines.
+
+## Bundled evaluation harness (Phase 1)
+
+The repo includes a **small, versioned** eval set (`evalsets/v1/`) and the `prompt-polisher-eval` CLI entry point. **Tier A** scores structural expectations on the compile graph (no second LLM). **Tier B** optionally runs a paired **Raw vs Compiled** pass against simple gold checks. Results are **Empirical only** for the pinned model, temperature, and eval version—they do **not** imply universal performance (see *Replacing evaluation* under [When not to use this tool](#when-not-to-use-this-tool)).
 
 ## Related work (positioning)
 

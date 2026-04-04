@@ -48,6 +48,7 @@ langfuse = ["langfuse>=2.54.0"]
 [project.scripts]
 prompt-polisher = "prompt_polisher.cli:main"
 prompt-polisher-langfuse-check = "prompt_polisher.langfuse_check:main"
+prompt-polisher-eval = "prompt_polisher.eval.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/RimmonXIA/Prompt_Polisher"

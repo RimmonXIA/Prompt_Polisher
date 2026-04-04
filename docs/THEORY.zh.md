@@ -101,6 +101,7 @@ graph TD
 | §5 锚点/流形隐喻 | `anchor_persona` 与措辞建议 | 可测几何「投影」 |
 | §6 对齐、误拒 | Radar `alignment_risk` 与闸门策略 | 部署策略与 RM 细节 |
 | §7 软提示、DSPy | `dspy_sketch` 文本草图 | P-Tuning 训练、可运行 DSPy 流水线 |
+| （Phase 1）编译实证基线 | `evalsets/v1`、`prompt-polisher-eval`：Tier A 结构期望；Tier B 可选 Raw vs 编译稿成对 + 简单 gold | 用户域内完整基准、跨模型普适结论 |
 | §8 注入、越狱、深度防御 | 启发式与 Radar JSON、XML 闭合等浅层规则 | CaMeL 式架构隔离、自适应攻击基准闭环 |
 
 ## 理论地图
