@@ -72,7 +72,7 @@ flowchart TD
 
 ### Diagram 2b — `prompts/*.txt` per node
 
-[`PromptBundle`](../src/prompt_polisher/prompts_bundle.py) (LRU key = resolved `PROMPTS_DIR`, else package data via `importlib.resources`). **System** message = `*_system_base.txt` + trusted or untrusted slice per `author_trust_mode`.
+[`PromptBundle`](../src/prompt_polisher/prompts_bundle.py) (LRU key = resolved `PROMPTS_DIR`, else package data via `importlib.resources`). **System** / **user** are chat roles: **system** is the instruction stack from `*_system_*.txt`; **user** is the per-call payload (templates or JSON in [`nodes.py`](../src/prompt_polisher/nodes.py)). `_system_user` in that file appends the Pydantic JSON schema to **system** when the node expects structured output.
 
 ```mermaid
 flowchart TB
