@@ -52,10 +52,13 @@ class RoutingDecision(BaseModel):
     )
     rationale: str = Field(
         description=(
-            "Write a brief, user-facing explanation of the strategy you have chosen to "
-            "solve their problem. MUST be written in the SAME LANGUAGE as the user's "
-            "original prompt. Avoid technical routing jargon; frame it as how you "
-            "plan to help them."
+            "Brief, user-facing explanation in the SAME LANGUAGE as the user's original "
+            "prompt of how compilation will encode the author's specification into the "
+            "hardened prompt for the downstream executor model—not how you behave during "
+            "this routing turn. Prefer third person or neutral analyst phrasing (what the "
+            "compiled artifact will require or preserve). Do not restate the author's "
+            "constraints as first-person self-commitments about yourself. Avoid internal "
+            "routing or compiler jargon."
         )
     )
 

@@ -226,7 +226,7 @@ class SessionRenderer:
                         if rationale:
                             if len(rationale) > 75:
                                 rationale = rationale[:72] + "..."
-                            self._console.print(f"    [dim]└── 🧭 路由策略：{rationale}[/dim]")
+                            self._console.print(f"    [dim]└── 🧭 编译取向：{rationale}[/dim]")
 
     def interrupt(self) -> None:
         """Called when KeyboardInterrupt is caught."""
