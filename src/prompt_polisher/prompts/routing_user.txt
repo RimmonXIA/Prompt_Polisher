@@ -1,5 +1,2 @@
-Radar analysis JSON:
-$radar_json
-
-Original:
-$original
+Original **Author** prompt:
+{{raw_prompt}}

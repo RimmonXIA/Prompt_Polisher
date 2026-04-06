@@ -1,1 +1,1 @@
-When critic_halted_max is true or risk is high, you may shorten final_prompt for safety while explaining the tradeoff in workflow_blueprint.
+When `critic_halted_max` is true or risk is high, shorten the `final_prompt` for the **Invoker**'s safety while explaining the tradeoff in `workflow_blueprint`.

@@ -13,7 +13,7 @@ OutputRoute = Literal["instance", "template", "dspy"]
 
 
 class RadarAnalysis(BaseModel):
-    """Output of the Radar node: intent decomposition and threat signals."""
+    """Output of the Radar node: Orchestrator analyzes Author intent and threat signals."""
 
     negations_flipped: str = Field(default="", description="Positive rewrite of the raw prompt.")
     threats: list[str] = Field(default_factory=list, description="Identified threat strings.")
@@ -22,8 +22,8 @@ class RadarAnalysis(BaseModel):
     )
     summary: str = Field(
         description=(
-            "Write a very brief, empathetic summary of the user's true intent or pain point. "
-            "MUST be written in the SAME LANGUAGE as the user's original prompt "
+            "Write a very brief, empathetic summary of the Author's true intent or pain point. "
+            "MUST be written in the SAME LANGUAGE as the Author's original prompt "
             "(e.g. Simplified Chinese). Use a non-technical, human-friendly tone. "
             "Do not use AI/LLM jargon."
         )
@@ -35,7 +35,7 @@ class RadarAnalysis(BaseModel):
 
 
 class RoutingDecision(BaseModel):
-    """Output of the Routing node: complexity budget and anchor strategy."""
+    """Output of the Routing node: Orchestrator complexity budget and anchor strategy."""
 
     complexity: Literal["low", "medium", "high"] = Field(
         default="medium", description="Estimated task complexity."
@@ -48,13 +48,16 @@ class RoutingDecision(BaseModel):
     )
     audience_anchor: str = Field(
         default="general public",
-        description="Target receptor context to stabilize tone and reasoning depth.",
+        description=(
+            "Target receptor context to stabilize tone and reasoning depth "
+            "for the Target executor."
+        ),
     )
     rationale: str = Field(
         description=(
-            "Brief, user-facing explanation in the SAME LANGUAGE as the user's original "
-            "prompt of how compilation will encode the author's specification into the "
-            "hardened prompt for the downstream executor model—not how you behave during "
+            "Brief, user-facing explanation in the SAME LANGUAGE as the Invoker's original "
+            "prompt of how compilation will encode the Author's specification into the "
+            "hardened prompt for the downstream Target executor—not how you behave during "
             "this routing turn. Prefer third person or neutral analyst phrasing (what the "
             "compiled artifact will require or preserve). Do not restate the author's "
             "constraints as first-person self-commitments about yourself. Avoid internal "
@@ -64,13 +67,20 @@ class RoutingDecision(BaseModel):
 
 
 class CompileDraft(BaseModel):
-    """Output of the Compile node: the draft prompt text."""
+    """Output of the Compile node: the draft prompt text. 
+    This is an Orchestrator payload intended for the Target executor."""
 
-    draft: str = Field(default="", description="Compiled prompt draft.")
+    draft: str = Field(
+        default="", 
+        description=(
+            "Compiled prompt draft. Must convey instructions for the Target "
+            "without Orchestrator first-person phrasing."
+        ),
+    )
 
 
 class CriticFeedback(BaseModel):
-    """Output of the Critic node."""
+    """Output of the Critic node: Orchestrator audits its own output."""
 
     passed: bool = Field(default=False, description="Whether the draft passes review.")
     feedback: str = Field(default="", description="Critic feedback or failure reason.")
@@ -87,9 +97,9 @@ class PrmEvaluation(BaseModel):
 
 
 class RouterDeliverable(BaseModel):
-    """Output of the Router node."""
+    """Output of the Router node: Orchestrator's final deliverables."""
 
-    final_prompt: str = Field(default="", description="The final polished prompt.")
+    final_prompt: str = Field(default="", description="The final polished prompt for the Target.")
     workflow_blueprint: str = Field(
         default="", description="Markdown describing a multi-step AI workflow."
     )
@@ -104,7 +114,10 @@ class RouterDeliverable(BaseModel):
 
 
 class GraphState(TypedDict, total=False):
-    """LangGraph state for the prompt compiler workflow."""
+    """LangGraph state for the Orchestrator's prompt compiler workflow.
+
+    This state object transitions from Author/Invoker input (raw_prompt) through Orchestrator 
+    analysis and compilation phases, resulting in deliverables for the Target."""
 
     raw_prompt: str
 

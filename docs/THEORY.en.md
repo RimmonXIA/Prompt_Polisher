@@ -8,6 +8,15 @@ Prompt engineering is treated as **structured intervention** on (at least) **att
 
 **Non-claims:** The tool does **not** guarantee task success, formal safety, global optimality, or portability across every model and API. See [Limits and non-claims](#limits-and-non-claims) and [When not to use this tool](#when-not-to-use-this-tool).
 
+## Architecture Taxonomy
+
+To prevent role confusion and "Identity Loops", the system strictly enforces the following entities and data objects:
+1. **Invoker**: The user or automated agent making the request to the CLI/API.
+2. **Author**: The creator of the `raw_prompt` (often the same as the Invoker, but conceptually distinct for trust/source tracking).
+3. **Orchestrator (Prompt Polisher)**: The LangGraph compilation pipeline. It acts as an analyst/architect and speaks in the *third person* regarding the prompt. It NEVER role-plays as the final assistant.
+4. **Inference Engine (LLM)**: The raw compute provider executing our internal nodes (Radar, Compile, Critic). It is constrained by the Orchestrator's taxonomy.
+5. **Target (Executor)**: The downstream model that will eventually receive and execute the `final_prompt`.
+
 ## Pipeline (aligned with code)
 
 1. **Radar** — Intent decomposition, heuristic alignment/injection signals, JSON-shaped analysis merged into graph state.

@@ -23,6 +23,17 @@ Most prompts fail because they lack structure, trigger negative constraints, or 
 
 ---
 
+## 🏗️ Architecture & Entities
+
+To ensure robust prompt compilation without role-confusion interventions, Prompt Polisher distinguishes five core entities:
+1. **Invoker**: Triggers the compilation request.
+2. **Author**: Provides the initial `raw_prompt` intent.
+3. **Orchestrator**: The LangGraph engine acting as an architectural analyst.
+4. **Inference Engine (LLM)**: Executes the internal compilation graph.
+5. **Target (Executor)**: The downstream model running the polished result.
+
+---
+
 ## 🗺️ Workflow Architecture
 
 ```mermaid

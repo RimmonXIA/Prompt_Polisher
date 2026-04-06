@@ -1,5 +1,5 @@
-Draft to review:
-$draft
+Review this prompt draft against the original **Author** intent:
+{{raw_prompt}}
 
-Original intent:
-$original_intent
+Draft to audit:
+{{draft}}

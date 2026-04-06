@@ -1,1 +1,1 @@
-final_prompt must faithfully carry forward the compiled methodology from draft; do not replace it with a generic refusal unless critic_halted_max is true and a minimal safe response is strictly required.
+The **Orchestrator**'s `final_prompt` must faithfully carry forward the compiled methodology from `draft` for the **Target**; do not replace it with a generic refusal unless `critic_halted_max` is true.

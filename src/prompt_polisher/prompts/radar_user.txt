@@ -1,4 +1,2 @@
-Raw user request:
-$raw
-
-Heuristic injection flag: $heuristic_injection
+Raw **Author** request (via **Invoker**):
+{{raw_prompt}}

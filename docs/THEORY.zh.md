@@ -6,7 +6,17 @@
 
 主链与代码一致：**Radar → ThreatGate（可选）→ Route → Compile → Critic → Router**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Router 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
 
-## 架构
+## 架构分类与实体定义 (Architecture Taxonomy)
+
+为防止角色混淆与“身份循环 (Identity Loop)”，系统在理论与实现上严格区分以下实体与数据对象：
+1. **调用方/发起者 (Invoker)**: 触发 CLI/API 的用户或自动化主体。
+2. **作者 (Author)**: `raw_prompt` 的提出者与意图来源（概念上需与调配逻辑解耦，以评估信任度）。
+3. **编排器 (Orchestrator, 即 Prompt Polisher 本身)**: 我们的 LangGraph 编译流水线。它以第三人称的“分析师/架构师”身份行事，**绝不**在此阶段进行最终助手的角色扮演 (role-play)。
+4. **推理引擎 (Inference Engine, 节点 LLM)**: 驱动内部节点（Radar, Compile, Critic）的算力源。必须被严格限制在 Orchestrator 的系统预设下。
+5. **执行目标 (Target / Executor)**: 最终接收并运行 `final_prompt` 或工作流的下游模型。
+
+## 架构图解
+
 
 ```mermaid
 graph TD

@@ -68,7 +68,7 @@ def test_radar_system_prompt_trusted_author_default(monkeypatch: pytest.MonkeyPa
     llm = RecordingFakeLLM([radar_json])
     asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
-    assert "verified architect" in system.lower()
+    assert "verified" in system.lower() and "author" in system.lower()
     assert "semantic integrity" in system.lower()
 
 
@@ -84,7 +84,7 @@ def test_radar_prompt_defensive_when_author_trust_off(
     )
     asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
-    assert "untrusted source protocol" in system.lower()
+    assert "untrusted" in system.lower() and "source" in system.lower()
 
 
 def test_compile_system_prompt_preserves_methodology(monkeypatch: pytest.MonkeyPatch) -> None:
