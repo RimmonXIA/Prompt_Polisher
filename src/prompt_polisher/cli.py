@@ -170,7 +170,10 @@ def main(argv: list[str] | None = None) -> int:
         "-v",
         "--verbose",
         action="store_true",
-        help="stderr: keep httpx/httpcore INFO (JSON modes normally hide it)",
+        help=(
+            "stderr: keep httpx/httpcore INFO (JSON modes normally hide it); "
+            "in interactive TTY mode, show the full input in the splash panel"
+        ),
     )
 
     other_g = parser.add_argument_group("Other")
@@ -268,9 +271,17 @@ def main(argv: list[str] | None = None) -> int:
     try:
         llm = build_llm_client(settings)
         sanitized = sanitize_user_input(raw.strip())
-        renderer = SessionRenderer(
-            raw_prompt=sanitized, version=_package_version()
-        ) if _interactive else None
+        source_label = args.file.name if args.file is not None else None
+        renderer = (
+            SessionRenderer(
+                raw_prompt=sanitized,
+                version=_package_version(),
+                verbose=bool(args.verbose),
+                source_label=source_label,
+            )
+            if _interactive
+            else None
+        )
 
         def _on_start(node_name: str, event: dict[str, object]) -> None:
             if renderer:

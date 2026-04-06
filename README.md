@@ -91,6 +91,11 @@ uv run prompt-polisher --serve --port 8000
 For scripts and coding agents (Cursor, Windsurf, custom workers), treat the CLI as a protocol:
 - **stdout**: Carries the primary payload (Text, Markdown, or JSON).
 - **stderr**: Carries logs and diagnostic info (use `--quiet` to minimize noise).
+- **Interactive TTY** (human mode, not `--envelope` / agent JSON on stdout): stderr prints a Rich splash panel with a **terminal-width-aware** preview of your input (up to four **logical** lines of text, plus a dim **stats** line).
+  - Stats include **character count** and **logical line count** (newline-separated segments in the input). That count is **not** the number of **wrapped rows** Rich draws inside the panel; long lines wrap, so the panel can look taller than the line count (especially with **`-v` / `--verbose`**, which shows the **full** input in the panel).
+  - With **`-f` / `--file`**, the stats line can start with **`source:`** plus the file basename (for example `notes.md`).
+  - If the bounded preview omits content, stats include **`preview truncated`**.
+  - **`-v` / `--verbose`** also enables noisier HTTP client logging on stderr (httpx/httpcore INFO).
 
 #### Exit Codes (Stable for Automation)
 
@@ -118,6 +123,7 @@ The standard JSON envelope includes:
 | **Node 3: Compile** | `nodes.py` (`node_compile`) |
 | **Node 4: Critic** | `nodes.py` (`node_critic`) |
 | **Global State** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
+| **Interactive stderr UX** (splash, spinners) | [`src/prompt_polisher/ux.py`](src/prompt_polisher/ux.py) (`SessionRenderer`) |
 | **Eval harness** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
 
 

@@ -9,10 +9,73 @@ import sys
 import time
 from typing import Any, TextIO
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.status import Status
 from rich.text import Text
+
+# First N logical lines shown in the default (non-verbose) splash preview.
+_SPLASH_MAX_PREVIEW_LINES = 4
+
+
+def splash_inner_width(console_width: int) -> int:
+    """Approximate usable width inside the splash Panel (border + padding)."""
+    return max(40, min(120, console_width - 8))
+
+
+def splash_prompt_line_count(raw: str) -> int:
+    if not raw:
+        return 0
+    return len(raw.splitlines())
+
+
+def _truncate_line_to_width(line: str, max_chars: int) -> tuple[str, bool]:
+    if max_chars <= 0:
+        return "", bool(line)
+    if len(line) <= max_chars:
+        return line, False
+    if max_chars <= 3:
+        return line[:max_chars], True
+    return line[: max_chars - 3] + "...", True
+
+
+def build_bounded_splash_body(
+    raw: str,
+    *,
+    console_width: int,
+    max_lines: int = _SPLASH_MAX_PREVIEW_LINES,
+) -> tuple[str, bool]:
+    """Build default splash body: up to ``max_lines`` lines, width-truncated.
+
+    Returns ``(body, truncated)`` where ``truncated`` is True if any content was omitted.
+    """
+    inner = splash_inner_width(console_width)
+    lines = raw.splitlines()
+    truncated = False
+    out: list[str] = []
+    for line in lines[:max_lines]:
+        stripped = line.strip()
+        chunk, line_trunc = _truncate_line_to_width(stripped, inner)
+        out.append(chunk)
+        if line_trunc:
+            truncated = True
+    if len(lines) > max_lines:
+        truncated = True
+    body = "\n".join(out)
+    return body, truncated
+
+
+def splash_main_body(
+    raw: str,
+    *,
+    verbose: bool,
+    console_width: int,
+    max_lines: int = _SPLASH_MAX_PREVIEW_LINES,
+) -> tuple[str, bool]:
+    """Panel body text for the splash; second value indicates display truncation."""
+    if verbose:
+        return raw, False
+    return build_bounded_splash_body(raw, console_width=console_width, max_lines=max_lines)
 
 # ── Node → human-readable message map ─────────────────────────────────────────
 
@@ -39,11 +102,21 @@ _NODE_EMOJI: dict[str, str] = {
 class SessionRenderer:
     """Tracks node events across a full compiler run and drives rich UX."""
 
-    def __init__(self, raw_prompt: str, version: str, *, stream: TextIO = sys.stderr) -> None:
+    def __init__(
+        self,
+        raw_prompt: str,
+        version: str,
+        *,
+        stream: TextIO = sys.stderr,
+        verbose: bool = False,
+        source_label: str | None = None,
+    ) -> None:
         self._console = Console(file=stream, highlight=False)
         self._raw_prompt = raw_prompt
         self._version = version
-        
+        self._verbose = verbose
+        self._source_label = source_label
+
         self._current_status: Status | None = None
         self._node_start_time: float = 0.0
         self._node_counts: dict[str, int] = {}
@@ -53,12 +126,27 @@ class SessionRenderer:
 
     def _print_splash(self) -> None:
         title = Text.assemble(("✦ Prompt Polisher ", "bold magenta"), (f"v{self._version}", "dim"))
-        preview = self._raw_prompt.replace("\n", " ").strip()
-        if len(preview) > 65:
-            preview = preview[:62] + "..."
-        
+        cw = self._console.width or 80
+        body, display_truncated = splash_main_body(
+            self._raw_prompt, verbose=self._verbose, console_width=cw
+        )
+        n_chars = len(self._raw_prompt)
+        n_lines = splash_prompt_line_count(self._raw_prompt)
+
+        main = Text(body, style="white", overflow="fold", no_wrap=False)
+        stats_parts: list[str] = []
+        if self._source_label:
+            stats_parts.append(f"source: {self._source_label}")
+        stats_parts.append(f"{n_chars} chars")
+        stats_parts.append(f"{n_lines} logical lines")
+        if self._verbose:
+            stats_parts.append("full prompt shown")
+        elif display_truncated:
+            stats_parts.append("preview truncated")
+        stats_line = Text(" · ".join(stats_parts), style="dim")
+
         panel = Panel(
-            Text(preview, style="white"),
+            Group(main, stats_line),
             title=title,
             title_align="left",
             border_style="dim",
