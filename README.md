@@ -126,6 +126,9 @@ The standard JSON envelope includes:
 | **Interactive stderr UX** (splash, spinners) | [`src/prompt_polisher/ux.py`](src/prompt_polisher/ux.py) (`SessionRenderer`) |
 | **Eval harness** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
 
+### CLI invocation flow (Mermaid reference)
+
+Code-accurate sequence and flow diagrams for `uv run prompt-polisher`: CLI bootstrap, LangGraph edges, [`prompts/`](src/prompt_polisher/prompts/) via [`prompts_bundle.py`](src/prompt_polisher/prompts_bundle.py), stdout/stderr modes, and `GraphState` updates — see **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**.
 
 ### Evaluation harness
 
@@ -177,6 +180,7 @@ Prompt Polisher is a [Full A2A Participant](https://github.com/a2aproject/A2A) (
 | --- | --- | --- |
 | **Chinese (Canonical)** | [docs/THEORY.zh.md](docs/THEORY.zh.md) | **Source of Truth**: Full architecture, evidence grades, and theory map. |
 | **English (Summary)** | [docs/THEORY.en.md](docs/THEORY.en.md) | **Bridge**: Scope, non-claims, and architectural overview for international teams. |
+| **English (Operational)** | [docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md) | **Implementation map**: Mermaid views of CLI → graph → API, prompt file wiring, outputs, and `GraphState` fields. |
 
 ---
 

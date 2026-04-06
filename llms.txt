@@ -10,6 +10,7 @@
 
 - [docs/THEORY.en.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.en.md) — Short English bridge: claims, non-claims, pipeline aligned with code.
 - [docs/THEORY.zh.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.zh.md) — Canonical long-form theory (diagram notes, theory map, evidence grades, limits, references).
+- [docs/CLI_INVOCATION_FLOW.md](https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/CLI_INVOCATION_FLOW.md) — Mermaid reference: CLI → LangGraph → API, prompt bundle wiring, outputs, GraphState (kept in sync with code).
 
 ## Examples
 

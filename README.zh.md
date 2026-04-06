@@ -120,6 +120,9 @@ uv run prompt-polisher --serve --port 8000
 | **全局状态 (Global State)** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
 | **评测基线** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
 
+### CLI 调用链（Mermaid 参考）
+
+与 `uv run prompt-polisher` 一致的端到端示意图：CLI 启动、LangGraph 边、[`prompts/`](src/prompt_polisher/prompts/) 与 [`prompts_bundle.py`](src/prompt_polisher/prompts_bundle.py)、标准输出/标准错误模式、`GraphState` 更新 — 见 **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**（英文正文）。
 
 ### 评测基线
 
@@ -167,6 +170,7 @@ Prompt Polisher 是一个 [全合规 A2A 参与者](https://github.com/a2aprojec
 | --- | --- | --- |
 | **中文 (权威本 Canonical)** | [docs/THEORY.zh.md](docs/THEORY.zh.md) | **Source of Truth**：提供完整架构理论、证据等级声明及知识地图。 |
 | **英文 (摘要 Bridge)** | [docs/THEORY.en.md](docs/THEORY.en.md) | **过渡桥梁**：讨论产品边界与学术研究现状的对照摘要。 |
+| **英文 (实现对照 Operational)** | [docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md) | **与代码同步**：CLI→图→API、提示词文件接线、输出与状态字段的 Mermaid 说明（英文正文）。 |
 
 ---
 
