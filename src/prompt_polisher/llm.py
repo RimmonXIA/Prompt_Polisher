@@ -4,8 +4,9 @@ import logging
 import os
 from typing import Any, Protocol, cast, runtime_checkable
 
-import httpx
-from openai import APIConnectionError, AsyncOpenAI, OpenAI
+import litellm
+from litellm import acompletion, completion
+from openai import APIConnectionError
 from tenacity import (
     AsyncRetrying,
     Retrying,
@@ -62,21 +63,12 @@ def _normalize_socks_proxy() -> None:
             os.environ[env_var] = new_val
 
 
-class OpenAICompatibleClient:
+class UniversalLLMClient:
     def __init__(self, settings: Settings) -> None:
         _normalize_socks_proxy()
         self._settings = settings
-        api_key = settings.resolved_api_key()
-        base_url = settings.resolved_base_url()
-        client_kwargs: dict[str, Any] = {
-            "api_key": api_key,
-            "max_retries": 0,
-            "timeout": httpx.Timeout(connect=30.0, read=180.0, write=30.0, pool=30.0),
-        }
-        if base_url is not None:
-            client_kwargs["base_url"] = base_url
-        self._client = OpenAI(**client_kwargs)
-        self._async_client = AsyncOpenAI(**client_kwargs)
+        self._api_key = settings.resolved_api_key()
+        self._base_url = settings.resolved_base_url()
         self._model = settings.resolved_model()
 
     def chat(
@@ -95,17 +87,20 @@ class OpenAICompatibleClient:
         span = start_llm_span(self._settings, name="llm.chat", input_preview=preview)
         try:
             for attempt in Retrying(
-                retry=retry_if_exception_type(APIConnectionError),
+                retry=retry_if_exception_type((APIConnectionError, litellm.exceptions.APIConnectionError)),
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(5),
                 before_sleep=before_sleep_log(logger, logging.WARNING),
                 reraise=True,
             ):
                 with attempt:
-                    resp = self._client.chat.completions.create(
+                    resp = completion(
                         model=resolved_model,
                         messages=cast(Any, messages),
                         temperature=temp,
+                        api_key=self._api_key,
+                        base_url=self._base_url,
+                        timeout=180.0,
                     )
             content = resp.choices[0].message.content or ""
             span.end(
@@ -132,17 +127,20 @@ class OpenAICompatibleClient:
         span = start_llm_span(self._settings, name="llm.achat", input_preview=preview)
         try:
             async for attempt in AsyncRetrying(
-                retry=retry_if_exception_type(APIConnectionError),
+                retry=retry_if_exception_type((APIConnectionError, litellm.exceptions.APIConnectionError)),
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(5),
                 before_sleep=before_sleep_log(logger, logging.WARNING),
                 reraise=True,
             ):
                 with attempt:
-                    resp = await self._async_client.chat.completions.create(
+                    resp = await acompletion(
                         model=resolved_model,
                         messages=cast(Any, messages),
                         temperature=temp,
+                        api_key=self._api_key,
+                        base_url=self._base_url,
+                        timeout=180.0,
                     )
             content = resp.choices[0].message.content or ""
             span.end(
@@ -183,4 +181,4 @@ class FakeLLMClient:
 
 
 def build_llm_client(settings: Settings) -> LLMClient:
-    return OpenAICompatibleClient(settings)
+    return UniversalLLMClient(settings)

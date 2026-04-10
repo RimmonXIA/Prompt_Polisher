@@ -73,7 +73,7 @@ def _machine_json_stdout(args: argparse.Namespace) -> bool:
     """True when primary stdout is JSON for agents (--envelope, or env)."""
     if args.envelope:
         return True
-    if args.markdown:
+    if args.markdown or args.report:
         return False
     return _truthy_env("PROMPT_POLISHER_AGENT")
 
@@ -150,8 +150,9 @@ def main(argv: list[str] | None = None) -> int:
     output_g.add_argument(
         "-m",
         "--markdown",
+        "--report",
         action="store_true",
-        help="Prints a rich Markdown analytical report (includes diff & summary)",
+        help="Prints a rich Markdown analytical report (includes deliverables, diff & summary)",
     )
     output_g.add_argument(
         "--envelope",
@@ -207,9 +208,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         args = parser.parse_args(argv)
-        formats_count = sum([bool(args.markdown), bool(args.envelope)])
+        formats_count = sum([bool(args.markdown or args.report), bool(args.envelope)])
         if formats_count > 1:
-            parser.error("argument -m/--envelope: mutually exclusive")
+            parser.error("argument -m/--markdown/--report/--envelope: mutually exclusive")
     except argparse.ArgumentError as exc:
         print(f"{parser.prog}: error: {exc}", file=sys.stderr)
         return EXIT_ERROR
@@ -260,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_ERROR
 
     use_envelope = bool(args.envelope)
-    if not (args.markdown or args.envelope):
+    if not (args.markdown or args.report or args.envelope):
         if _truthy_env("PROMPT_POLISHER_AGENT"):
             use_envelope = True
 
@@ -329,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
 
     code = exit_code_for_state(result)
 
-    if args.markdown:
+    if args.markdown or args.report:
         md = render_compilation_report(
             result,
             settings=settings,

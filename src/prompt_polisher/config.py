@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ProviderName = Literal["openai", "deepseek"]
+ProviderName = str
 
 
 class Settings(BaseSettings):
@@ -98,15 +98,27 @@ class Settings(BaseSettings):
     def resolved_api_key(self) -> str:
         if self.llm_api_key is not None:
             return self.llm_api_key.get_secret_value()
-        if self.llm_provider == "deepseek":
-            if self.deepseek_api_key is None:
-                msg = "DEEPSEEK_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=deepseek"
-                raise ValueError(msg)
+        if self.llm_provider == "deepseek" and self.deepseek_api_key:
             return self.deepseek_api_key.get_secret_value()
-        if self.openai_api_key is None:
-            msg = "OPENAI_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=openai"
+        if self.llm_provider == "openai" and self.openai_api_key:
+            return self.openai_api_key.get_secret_value()
+
+        # Fallback to provider-specific environment variables that litellm might expect
+        # but here we just try to return what we have.
+        if self.llm_provider == "deepseek":
+            msg = "DEEPSEEK_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=deepseek"
             raise ValueError(msg)
-        return self.openai_api_key.get_secret_value()
+        if self.llm_provider == "openai":
+            if self.openai_api_key is None:
+                msg = "OPENAI_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=openai"
+                raise ValueError(msg)
+            return self.openai_api_key.get_secret_value()
+
+        # For other providers, we expect LLM_API_KEY to be set
+        if self.llm_api_key is None:
+            msg = f"LLM_API_KEY is required for provider '{self.llm_provider}'"
+            raise ValueError(msg)
+        return self.llm_api_key.get_secret_value()
 
     def resolved_base_url(self) -> str | None:
         if self.llm_api_base:
@@ -122,7 +134,9 @@ class Settings(BaseSettings):
             return self.llm_model
         if self.llm_provider == "deepseek":
             return self.deepseek_model
-        return self.openai_model
+        if self.llm_provider == "openai":
+            return self.openai_model
+        return self.llm_model or "gpt-4o-mini"  # Fallback
 
     def resolved_prm_model(self) -> str:
         if self.prm_model and self.prm_model.strip():

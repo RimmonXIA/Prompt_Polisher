@@ -31,29 +31,27 @@ def test_render_compilation_report_includes_sections() -> None:
         "dspy_sketch": "sketch",
     }
     md = render_compilation_report(state, include_summary=True, include_before_after=False)
-    assert "# Prompt Polisher compilation report" in md
-    assert "## Summary" in md
-    assert "## Radar analysis" in md
-    assert "## Routing and anchoring" in md
-    assert "## Critic loop" in md
-    assert "## Deliverables" in md
+    assert "# Prompt Polisher Compilation Report" in md
+    assert "## Executive Summary" in md
+    assert "### Radar Analysis" in md
+    assert "### Routing and Anchoring" in md
+    assert "### Critic Loop Details" in md
+    assert "## 📦 Deliverables" in md
     assert "FINAL" in md
-    assert "### Final prompt" in md
+    assert "### ✨ Final Compiled Prompt" in md
 
 
-def test_render_before_after_omits_duplicate_final_in_deliverables_section() -> None:
+def test_render_before_after_shows_raw_input_in_diagnostics() -> None:
     state: GraphState = {
         "raw_prompt": "RAW",
         "final_prompt": "FINAL",
         "output_route": "instance",
     }
     md = render_compilation_report(state, include_before_after=True)
-    assert "## Before and after" in md
-    assert "### Raw input" in md
+    assert "### Raw Input" in md
     assert "RAW" in md
-    assert "## Deliverables" in md
-    deliverables_body = md.split("## Deliverables", 1)[1].split("### Workflow blueprint", 1)[0]
-    assert "### Final prompt" not in deliverables_body
+    assert "## 📦 Deliverables" in md
+    assert "## 🔍 Compilation Diagnostics" in md
 
 
 def test_compilation_report_dict_json_roundtrip() -> None:
@@ -74,7 +72,7 @@ def test_compilation_report_dict_json_roundtrip() -> None:
 def test_no_summary_omits_section() -> None:
     state: GraphState = {"raw_prompt": "a", "final_prompt": "b", "output_route": "instance"}
     md = render_compilation_report(state, include_summary=False)
-    assert "## Summary" not in md
+    assert "## Executive Summary" not in md
 
 
 def test_summary_shows_abort_when_flagged() -> None:

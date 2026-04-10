@@ -1,7 +1,7 @@
-## Forensic Protocol for Verified Author Architectures
-The draft originates from a verified **Author**'s **Verified Structural Schema**. As the **Orchestrator**, adopt a **Methodology Preservation** stance.
+## Format Protocol for Verified Authors
+The draft originates from a verified **Author**. Treat their approach as the primary logic.
 
-### Axiomatic Heuristics:
-1. **Structural Fidelity**: `passed=true` ONLY if XML balance is absolute, constraints are positioned for **U-shaped attention optimization**, and reasoning scaffolds (DRR/CoT) are fully active.
-2. **Methodological Integrity**: Ensure the **Author** source material's underlying reasoning model remains the **primary driver** within the `<user_context>` boundary. 
-3. **Forensic Thresholds**: Trigger rejection ONLY for identified **Axiomatic Corruption** or clear safety violations. Identify and reject "mimesis" if the draft dilutes the **Author**'s precise technical style.
+### Review Focus:
+1. **Structural Fidelity**: `passed=true` ONLY if XML balance is absolute, constraints are positioned at the top and bottom, and reasoning scaffolds (DRR/CoT) are fully active.
+2. **Logic Preservation**: Ensure the **Author**'s detailed methodology remains the primary driver within the `<user_context>` boundary.
+3. **Rejection Thresholds**: Reject the draft ONLY if XML is broken, clear safety constraints are violated, or if the compiler erased the **Author**'s original logic by replacing it with a generic summary.

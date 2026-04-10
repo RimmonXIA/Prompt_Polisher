@@ -14,7 +14,7 @@ To prevent role confusion and "Identity Loops", the system strictly enforces the
 1. **Invoker**: The user or automated agent making the request to the CLI/API.
 2. **Author**: The creator of the `raw_prompt` (often the same as the Invoker, but conceptually distinct for trust/source tracking).
 3. **Orchestrator (Prompt Polisher)**: The LangGraph compilation pipeline. It acts as an analyst/architect and speaks in the *third person* regarding the prompt. It NEVER role-plays as the final assistant.
-4. **Inference Engine (LLM)**: The raw compute provider executing our internal nodes (Radar, Compile, Critic). It is constrained by the Orchestrator's taxonomy.
+4. **Inference Engine (LLM)**: The raw compute provider executing our internal nodes (Radar, Compile, Critic). Since v0.2.0, this is **provider-agnostic** via the LiteLLM gateway, supporting OpenAI, Anthropic, Gemini, DeepSeek, and mainstream Chinese providers (Qwen, GLM, etc.).
 5. **Target (Executor)**: The downstream model that will eventually receive and execute the `final_prompt`.
 
 ## Pipeline (aligned with code)

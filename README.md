@@ -76,7 +76,7 @@ graph LR
 uv sync --all-groups
 
 # Configure environment
-cp .env.example .env   # Edit API keys (OpenAI or DeepSeek)
+cp .env.example .env   # Edit API keys (OpenAI, DeepSeek, Claude, Gemini, etc.)
 ```
 
 ### 2. Usage
@@ -164,7 +164,9 @@ Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: [
 
 ### Configuration
 Key settings in your `.env`:
-- `LLM_PROVIDER`: `openai` (default) or `deepseek`.
+- `LLM_PROVIDER`: `openai` (default), `deepseek`, `anthropic`, `google`, `zhipu`, `aliyun`, etc.
+- `LLM_MODEL`: The target model name (e.g., `gpt-4o-mini`, `claude-3-5-sonnet-20240620`, `gemini/gemini-1.5-pro`).
+- `LLM_API_KEY`: Universal API key. Still supports `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, etc., for backward compatibility.
 - `AUTHOR_TRUST_MODE`: Set to `true` to disable strict safety gates for known authors.
 - `MAX_CRITIC_ITERATIONS`: Control the feedback loop depth (default: 3).
 - `CRITIC_USE_PRM`: Enable optional scalar-based process reward gating (heuristic).

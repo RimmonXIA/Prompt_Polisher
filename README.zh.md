@@ -65,7 +65,7 @@ graph LR
 uv sync --all-groups
 
 # 配置环境变量
-cp .env.example .env   # 填写 API Keys (OpenAI 或 DeepSeek)
+cp .env.example .env   # 填写 API Keys (OpenAI, DeepSeek, Claude, Gemini 等)
 ```
 
 ### 2. 使用方法 (Usage)
@@ -143,7 +143,9 @@ uv run prompt-polisher-eval --output eval-report.json
 
 ### 核心配置 (Configuration)
 位于 `.env` 中的关键设置：
-- `LLM_PROVIDER`: `openai`（默认）或 `deepseek`。
+- `LLM_PROVIDER`: `openai`（默认）、`deepseek`、`anthropic`、`google`、`zhipu`、`aliyun` 等。
+- `LLM_MODEL`: 目标模型名称（如 `gpt-4o-mini`、`claude-3-5-sonnet-20240620`、`gemini/gemini-1.5-pro`）。
+- `LLM_API_KEY`: 通用 API 秘钥。为保证兼容性，仍支持 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY` 等供应商特定变量。
 - `AUTHOR_TRUST_MODE`: 设置为 `true` 可针对可信作者禁用严格的安全闸门。
 - `MAX_CRITIC_ITERATIONS`: 控制审查反馈循环的最大深度（默认: 3）。
 - `CRITIC_USE_PRM`: 启用可选的基于标量的过程奖励门控（启发式）。

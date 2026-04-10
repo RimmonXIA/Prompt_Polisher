@@ -139,10 +139,10 @@ def render_compilation_report(
 ) -> str:
     """Render a human-readable Markdown report from a post-invocation graph state."""
     p = _parts_from_state(state)
-    lines: list[str] = ["# Prompt Polisher compilation report", ""]
+    lines: list[str] = ["# Prompt Polisher Compilation Report", ""]
 
     if include_summary:
-        lines.append("## Summary")
+        lines.append("## Executive Summary")
         lines.append("")
         lines.append(_bullet_line("Compilation aborted", p.compilation_aborted))
         if p.compilation_aborted:
@@ -154,33 +154,44 @@ def render_compilation_report(
         lines.append(_bullet_line("Critic iterations", p.critic_iters))
         lines.append(_bullet_line("PRM score (if used)", p.prm_score))
         lines.append(_bullet_line("Stopped at max critic iterations", p.halted))
-        if p.radar:
-            lines.append(_bullet_line("Alignment risk (radar)", p.radar.get("alignment_risk")))
-            lines.append(_bullet_line("Linguistic entropy", p.radar.get("linguistic_entropy")))
-            threats = p.radar.get("threats")
-            if isinstance(threats, list) and threats:
-                lines.append(f"- **Threats:** {', '.join(str(t) for t in threats)}")
-        if p.routing:
-            lines.append(_bullet_line("Complexity (routing)", p.routing.get("complexity")))
-            lines.append(_bullet_line("Audience anchor", p.routing.get("audience_anchor")))
-            lines.append(
-                _bullet_line("Multi-node recommended", p.routing.get("multi_node_recommended"))
-            )
         lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## 📦 Deliverables")
+    lines.append("> *Ready-to-use artifacts generated from the pipeline.*")
+    lines.append("")
+    
+    lines.append("### ✨ Final Compiled Prompt")
+    lines.append("👇 *Copy the code block below directly into your target LLM* 👇")
+    lines.append("")
+    lines.append(_fence_block(p.final if p.final else "(empty)"))
+    
+    if p.blueprint:
+        lines.append("### 🗺️ Workflow Blueprint")
+        lines.append("")
+        lines.append(_fence_block(p.blueprint))
+        
+    if p.dspy:
+        lines.append("### 🪄 DSPy Sketch")
+        lines.append("")
+        lines.append(_fence_block(p.dspy))
+
+    # All the verbose stuff goes into a details block
+    lines.append("---")
+    lines.append("")
+    lines.append("## 🔍 Compilation Diagnostics")
+    lines.append("<details>")
+    lines.append("<summary>Click to expand internal graph metadata (Radar, Routing, Critic loops)</summary>")
+    lines.append("")
 
     if include_before_after:
-        lines.append("## Before and after")
-        lines.append("")
-        lines.append("### Raw input")
+        lines.append("### Raw Input")
         lines.append("")
         lines.append(_fence_block(p.raw if p.raw else "(empty)"))
-        lines.append("### Final prompt")
-        lines.append("")
-        lines.append(_fence_block(p.final if p.final else "(empty)"))
-        lines.append("")
 
     if settings is not None:
-        lines.append("## Settings snapshot")
+        lines.append("### Settings Snapshot")
         lines.append("")
         lines.append(_bullet_line("LLM provider", settings.llm_provider))
         lines.append(_bullet_line("Model", settings.resolved_model()))
@@ -193,41 +204,29 @@ def render_compilation_report(
             lines.append(_bullet_line("PRM min score", settings.prm_min_score))
         lines.append("")
 
-    lines.append("## Radar analysis")
+    lines.append("### Radar Analysis")
     lines.append("")
     lines.append(_format_dict_section("Structured fields", p.radar))
 
-    lines.append("## Routing and anchoring")
+    lines.append("### Routing and Anchoring")
     lines.append("")
     lines.append(_format_dict_section("Structured fields", p.routing))
 
-    lines.append("## Critic loop")
+    lines.append("### Critic Loop Details")
     lines.append("")
     lines.append(_bullet_line("Passed", p.critic_passed))
     lines.append(_bullet_line("Iterations", p.critic_iters))
     lines.append(_bullet_line("PRM score", p.prm_score))
     lines.append(_bullet_line("Halted at cap", p.halted))
     lines.append("")
-    lines.append("### Latest feedback")
+    lines.append("#### Latest feedback")
     lines.append("")
     lines.append(_fence_block(p.critic_fb if p.critic_fb else "(none)"))
-    lines.append("### Last draft (pre-router)")
+    lines.append("#### Last draft (pre-router)")
     lines.append("")
     lines.append(_fence_block(p.draft if p.draft else "(none)"))
 
-    lines.append("## Deliverables")
+    lines.append("</details>")
     lines.append("")
-    lines.append(_bullet_line("Output route", p.route))
-    lines.append("")
-    if not include_before_after:
-        lines.append("### Final prompt")
-        lines.append("")
-        lines.append(_fence_block(p.final if p.final else "(none)"))
-    lines.append("### Workflow blueprint")
-    lines.append("")
-    lines.append(_fence_block(p.blueprint if p.blueprint else "(none)"))
-    lines.append("### DSPy sketch")
-    lines.append("")
-    lines.append(_fence_block(p.dspy if p.dspy else "(none)"))
 
     return "\n".join(lines).rstrip() + "\n"
