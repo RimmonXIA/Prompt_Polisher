@@ -183,4 +183,3 @@ def test_eval_cli_version_exits_zero() -> None:
 
     code = eval_cli.main(["--version"])
     assert code == 0
-

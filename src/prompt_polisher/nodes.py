@@ -67,8 +67,13 @@ async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> d
     user = bundle.radar_user(raw, heuristic_injection)
     if settings.log_prompt_previews:
         logger.info("radar input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, RadarAnalysis))
-    parsed: RadarAnalysis | None = _parse_pydantic(RadarAnalysis, text)
+    try:
+        text = await llm.achat(_system_user(system, user, RadarAnalysis))
+        parsed: RadarAnalysis | None = _parse_pydantic(RadarAnalysis, text)
+    except Exception as e:
+        logger.error("LLM failure in node_radar: %s", e)
+        parsed = None
+        text = "llm_error"
 
     if parsed is None:
         parsed = RadarAnalysis(
@@ -94,8 +99,13 @@ async def node_routing(state: GraphState, llm: LLMClient, settings: Settings) ->
     user = bundle.routing_user(radar_json, state["raw_prompt"])
     if settings.log_prompt_previews:
         logger.info("routing input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, RoutingDecision))
-    parsed: RoutingDecision | None = _parse_pydantic(RoutingDecision, text)
+    try:
+        text = await llm.achat(_system_user(system, user, RoutingDecision))
+        parsed: RoutingDecision | None = _parse_pydantic(RoutingDecision, text)
+    except Exception as e:
+        logger.error("LLM failure in node_routing: %s", e)
+        parsed = None
+        text = "llm_error"
 
     if parsed is None:
         parsed = RoutingDecision(
@@ -123,9 +133,12 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
     user = f"Compile from:\n{json.dumps(payload, ensure_ascii=False)}"
     if settings.log_prompt_previews:
         logger.info("compile input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, CompileDraft))
-
-    parsed: CompileDraft | None = _parse_pydantic(CompileDraft, text)
+    try:
+        text = await llm.achat(_system_user(system, user, CompileDraft))
+        parsed: CompileDraft | None = _parse_pydantic(CompileDraft, text)
+    except Exception as e:
+        logger.error("LLM failure in node_compile: %s", e)
+        return {"draft": state["raw_prompt"]}
     if parsed and parsed.draft.strip():
         draft = parsed.draft.strip()
     else:
@@ -133,10 +146,11 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
         draft = text.strip()
         # First, try a direct regex search for a "draft" key if it was a JSON fail.
         import re
+
         match = re.search(r'"draft"\s*:\s*"(.*?)"', text, re.DOTALL)
         if match:
             draft = match.group(1).encode().decode("unicode_escape", errors="ignore").strip()
-        
+
         if not draft:
             draft = state["raw_prompt"]
 
@@ -185,9 +199,16 @@ async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> 
     user = bundle.critic_user(draft, state["raw_prompt"])
     if settings.log_prompt_previews:
         logger.info("critic input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, CriticFeedback))
-
-    parsed: CriticFeedback | None = _parse_pydantic(CriticFeedback, text)
+    try:
+        text = await llm.achat(_system_user(system, user, CriticFeedback))
+        parsed: CriticFeedback | None = _parse_pydantic(CriticFeedback, text)
+    except Exception as e:
+        logger.error("LLM failure in node_critic: %s", e)
+        return {
+            "critic_passed": False,
+            "critic_feedback": "llm_connection_error_halting",
+            "critic_iterations": settings.max_critic_iterations,  # Force halt
+        }
     if parsed is None:
         logger.warning(
             "Critic node returned unparseable JSON or prose. Raw text preview: %s",
@@ -235,9 +256,7 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
         {
             "output_route": route,
             "draft": (
-                f"[GOLDEN DRAFT - PRIORITIZE] {draft}"
-                if state.get("critic_passed")
-                else draft
+                f"[GOLDEN DRAFT - PRIORITIZE] {draft}" if state.get("critic_passed") else draft
             ),
             "routing": routing,
             "radar": state.get("radar_analysis") or {},
@@ -249,9 +268,12 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
     )
     if settings.log_prompt_previews:
         logger.info("router input preview: %s", preview_text(user))
-    text = await llm.achat(_system_user(system, user, RouterDeliverable))
-
-    parsed: RouterDeliverable | None = _parse_pydantic(RouterDeliverable, text)
+    try:
+        text = await llm.achat(_system_user(system, user, RouterDeliverable))
+        parsed: RouterDeliverable | None = _parse_pydantic(RouterDeliverable, text)
+    except Exception as e:
+        logger.error("LLM failure in node_router: %s", e)
+        parsed = None
     if not parsed:
         parsed = RouterDeliverable(
             final_prompt=draft,

@@ -246,6 +246,8 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 
     * **数学/物理本质**：在无需更新全局权重（ΔW = 0）的前提下，Transformer 可在**特定预训练与任务设定**下表现出与梯度下降、岭回归等算法高度一致的上下文内行为；推广到任意真实 NLP 任务时仍为 **Mechanistic / Empirical** 子域结论。
 
+    * **工程推论与误区（Exemplar vs Jargon）**：过度依赖复杂的概念隐喻（如在 System Prompt 中强加“公理体系腐化/自回归解构”等术语）常导致模型过度解读，幻化为无效的“扮演式”冗余，从而引发 Compile 与 Critic 间的剧烈对抗对耗（Structural Collapse）。**SOTA 实践（Show, Don't Tell）** 证明，在节点中预置“黄金示范对”（Exemplar Store）作为强迫上下文内映射的锚点，在矫正输出形态及其鲁棒性方面远胜于堆砌约束条约。
+
     * **参考文献**：Akyürek et al., *What learning algorithm is in-context learning?* [arXiv:2211.15661](https://arxiv.org/abs/2211.15661)；Zhang et al., *Trained Transformers Learn Linear Models In-Context*, [arXiv:2306.09927](https://arxiv.org/abs/2306.09927)。
 
 > **证据等级（§2.5）：** Mechanistic / Empirical（线性/简单函数族上的 ICL 算法对齐）。
@@ -257,13 +259,13 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 作用于输出层与解码器：用掩码与采样参数做**格式与分布**上的工程控制。
 
 
-* **§3.6 格式强制约束 (Format Masking)**
+* **§3.6 格式强制约束 (Format Masking / Structured Outputs)**
 
-    * **干预机制**：logits 空间硬截断 (Logits Hard Masking)。
+    * **干预机制**：logits 空间硬截断 (Logits Hard Masking) 与对齐协议。
 
-    * **数学/物理本质**：在 Softmax 之前对非法 token 的 logits 施加**极大负值**（工程实现中多为有限大负数而非数学 ∞），使对应概率**趋近于零**，从而近似实现结构化生成；库层常结合 FSM/文法编译为每步合法 token 掩码（如 Outlines）。
+    * **数学/物理本质**：在 Softmax 之前对非法 token 的 logits 施加**极大负值**（工程实现中多为有限大负数而非数学 ∞），使对应概率**趋近于零**，从而从物理上阻断模型输出非法格式的可能。在现代 API 中，此类截断正逐渐演变为基于底层的 JSON Schema 原生约束（Structured Outputs）。与正则表达式回退清洗和被动拦截（Critic）相比，直接施加 logits 掩码拥有代际维度的稳定性优势，彻底消解了解析层面的失效风险。
 
-    * **参考文献**：Outlines — constrained generation / logit masking，见 [dottxt-ai/outlines](https://github.com/dottxt-ai/outlines)。
+    * **参考文献**：Outlines — constrained generation / logit masking，见 [dottxt-ai/outlines](https://github.com/dottxt-ai/outlines)；OpenAI Structured Outputs。
 
 > **证据等级（§3.6）：** Empirical（约束解码广泛应用）+ Analogy（“概率为零”为工程近似）。
 
@@ -383,7 +385,7 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 
     * **干预机制**：黑盒或 LM 驱动的离散/连续联合搜索（**Analogy**：可类比超参优化；**非**经典最优控制的闭式解）。
 
-    * **数学/物理本质**：将提示词视为可调超参数；用 LM 或外部优化器在离散 token 空间做启发式搜索（如 **GCG** 类坐标梯度主要用于**攻击**研究；**DSPy** 等框架用于**建设性**编译与指标驱动调优）。目标是提升验证指标上的表观表现，依赖数据集与度量 $M(y, y_{true})$。
+    * **数学/物理本质（范式跃迁）**：将传统“长篇大论的手写经验提示（Heuristic Prompt String）”升维为声明式模块（Declarative Language Model calls，即 Signatures）。通过 LM 或外部优化器在离散 Token 空间或少量样本中进行搜索编译。**DSPy** 核心正是从硬编码复杂冗长的架构隐喻中去耦，这为消除手工调参下的“术语过拟合（Over-engineered Jargons）”幻觉提供了终极的演进框架。
 
     * **参考文献**：Khattab et al., *DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines*, [arXiv:2310.03714](https://arxiv.org/abs/2310.03714)；[stanfordnlp/dspy](https://github.com/stanfordnlp/dspy)。
 

@@ -62,9 +62,7 @@ def test_radar_system_prompt_trusted_author_default(monkeypatch: pytest.MonkeyPa
     monkeypatch.delenv("AUTHOR_TRUST_MODE", raising=False)
     get_settings.cache_clear()
     settings = get_settings()
-    radar_json = (
-        '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"pedagogical scaffold"}'
-    )
+    radar_json = '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"pedagogical scaffold"}'
     llm = RecordingFakeLLM([radar_json])
     asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]

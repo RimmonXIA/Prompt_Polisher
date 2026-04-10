@@ -77,6 +77,7 @@ def splash_main_body(
         return raw, False
     return build_bounded_splash_body(raw, console_width=console_width, max_lines=max_lines)
 
+
 # ── Node → human-readable message map ─────────────────────────────────────────
 
 NODE_MESSAGES: dict[str, str] = {
@@ -98,6 +99,7 @@ _NODE_EMOJI: dict[str, str] = {
 }
 
 # ── Session-level renderer ─────────────────────────────────────────────────────
+
 
 class SessionRenderer:
     """Tracks node events across a full compiler run and drives rich UX."""
@@ -159,27 +161,23 @@ class SessionRenderer:
         self._node_start_time = time.monotonic()
         count = self._node_counts.get(node_name, 0)
         self._node_counts[node_name] = count + 1
-        
+
         emoji = _NODE_EMOJI.get(node_name, "⚙️")
         base_msg = NODE_MESSAGES.get(node_name, node_name)
-        
+
         self._current_status = self._console.status(
             f"[cyan]{emoji}  {base_msg}...[/cyan]", spinner="dots"
         )
         self._current_status.start()
 
     def on_node_done(
-        self,
-        node_name: str,
-        *,
-        event: dict[str, Any] | None = None,
-        next_node: str | None = None
+        self, node_name: str, *, event: dict[str, Any] | None = None, next_node: str | None = None
     ) -> None:
         if self._current_status is None:
             return
 
         elapsed = time.monotonic() - self._node_start_time
-        
+
         # Stop spinner to replace with a permanent line
         self._current_status.stop()
         self._current_status = None
@@ -209,12 +207,12 @@ class SessionRenderer:
             self._console.print("[red]🚨 安全闸门触发 — 编译已中止[/red]")
         else:
             self._console.print(f"[green]✅[/green] {base_msg} [dim]({elapsed:.1f}s)[/dim]")
-            
+
             if event:
                 if node_name == "radar" and "radar_analysis" in event:
                     raw_analysis = event["radar_analysis"]
                     if isinstance(raw_analysis, dict):
-                        summary = str(raw_analysis.get("summary", "")).strip().split('\n')[0]
+                        summary = str(raw_analysis.get("summary", "")).strip().split("\n")[0]
                         if summary:
                             if len(summary) > 75:
                                 summary = summary[:72] + "..."
@@ -222,7 +220,7 @@ class SessionRenderer:
                 elif node_name == "routing" and "routing_decision" in event:
                     raw_routing = event["routing_decision"]
                     if isinstance(raw_routing, dict):
-                        rationale = str(raw_routing.get("rationale", "")).strip().split('\n')[0]
+                        rationale = str(raw_routing.get("rationale", "")).strip().split("\n")[0]
                         if rationale:
                             if len(rationale) > 75:
                                 rationale = rationale[:72] + "..."
@@ -241,7 +239,7 @@ class SessionRenderer:
         if self._current_status is not None:
             self._current_status.stop()
             self._current_status = None
-            
+
         if was_aborted:
             self._console.print(f"\n[red]🚫 编译流程已中止 (历时 {elapsed:.1f}s)[/red]\n")
         else:

@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
-import time
 from typing import Any, Protocol, cast, runtime_checkable
 
 import httpx
 from openai import APIConnectionError, AsyncOpenAI, OpenAI
+from tenacity import (
+    AsyncRetrying,
+    Retrying,
+    before_sleep_log,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from prompt_polisher.config import Settings
 from prompt_polisher.observability import start_llm_span
@@ -17,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 # Extra attempts after the SDK exhausts its own retries.
 # We set the SDK's internal max_retries to 0 so we don't multiply these!
-_TRANSPORT_ATTEMPTS = 3
-_TRANSPORT_BACKOFF_SEC = 2.0
 
 
 @runtime_checkable
@@ -43,7 +47,12 @@ class LLMClient(Protocol):
 def _normalize_socks_proxy() -> None:
     """Normalize 'socks://' to 'socks5://' in environment variables for httpx compatibility."""
     proxy_vars = [
-        "ALL_PROXY", "all_proxy", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"
+        "ALL_PROXY",
+        "all_proxy",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
     ]
     for env_var in proxy_vars:
         val = os.environ.get(env_var)
@@ -84,40 +93,28 @@ class OpenAICompatibleClient:
             preview = preview_text(str(messages))
 
         span = start_llm_span(self._settings, name="llm.chat", input_preview=preview)
-        last_conn: APIConnectionError | None = None
-        for transport_try in range(_TRANSPORT_ATTEMPTS):
-            try:
-                resp = self._client.chat.completions.create(
-                    model=resolved_model,
-                    messages=cast(Any, messages),
-                    temperature=temp,
-                )
-                content = resp.choices[0].message.content or ""
-                span.end(
-                    output=preview_text(content) if self._settings.log_prompt_previews else None,
-                )
-                return content
-            except APIConnectionError as exc:
-                last_conn = exc
-                if transport_try >= _TRANSPORT_ATTEMPTS - 1:
-                    break
-                delay = _TRANSPORT_BACKOFF_SEC * (2**transport_try)
-                logger.warning(
-                    "LLM connection error (attempt %s/%s), retrying in %.1fs: %s",
-                    transport_try + 1,
-                    _TRANSPORT_ATTEMPTS,
-                    delay,
-                    exc,
-                )
-                time.sleep(delay)
-            except Exception:
-                span.end(output=None)
-                raise
-        span.end(output=None)
-        if last_conn is not None:
-            raise last_conn
-        msg = "LLM transport retries exhausted without error state"
-        raise RuntimeError(msg)
+        try:
+            for attempt in Retrying(
+                retry=retry_if_exception_type(APIConnectionError),
+                wait=wait_exponential(multiplier=2, min=2, max=30),
+                stop=stop_after_attempt(5),
+                before_sleep=before_sleep_log(logger, logging.WARNING),
+                reraise=True,
+            ):
+                with attempt:
+                    resp = self._client.chat.completions.create(
+                        model=resolved_model,
+                        messages=cast(Any, messages),
+                        temperature=temp,
+                    )
+            content = resp.choices[0].message.content or ""
+            span.end(
+                output=preview_text(content) if self._settings.log_prompt_previews else None,
+            )
+            return content
+        except Exception:
+            span.end(output=None)
+            raise
 
     async def achat(
         self,
@@ -133,40 +130,28 @@ class OpenAICompatibleClient:
             preview = preview_text(str(messages))
 
         span = start_llm_span(self._settings, name="llm.achat", input_preview=preview)
-        last_conn: APIConnectionError | None = None
-        for transport_try in range(_TRANSPORT_ATTEMPTS):
-            try:
-                resp = await self._async_client.chat.completions.create(
-                    model=resolved_model,
-                    messages=cast(Any, messages),
-                    temperature=temp,
-                )
-                content = resp.choices[0].message.content or ""
-                span.end(
-                    output=preview_text(content) if self._settings.log_prompt_previews else None,
-                )
-                return content
-            except APIConnectionError as exc:
-                last_conn = exc
-                if transport_try >= _TRANSPORT_ATTEMPTS - 1:
-                    break
-                delay = _TRANSPORT_BACKOFF_SEC * (2**transport_try)
-                logger.warning(
-                    "LLM async connection error (attempt %s/%s), retrying in %.1fs: %s",
-                    transport_try + 1,
-                    _TRANSPORT_ATTEMPTS,
-                    delay,
-                    exc,
-                )
-                await asyncio.sleep(delay)
-            except Exception:
-                span.end(output=None)
-                raise
-        span.end(output=None)
-        if last_conn is not None:
-            raise last_conn
-        msg = "LLM async transport retries exhausted without error state"
-        raise RuntimeError(msg)
+        try:
+            async for attempt in AsyncRetrying(
+                retry=retry_if_exception_type(APIConnectionError),
+                wait=wait_exponential(multiplier=2, min=2, max=30),
+                stop=stop_after_attempt(5),
+                before_sleep=before_sleep_log(logger, logging.WARNING),
+                reraise=True,
+            ):
+                with attempt:
+                    resp = await self._async_client.chat.completions.create(
+                        model=resolved_model,
+                        messages=cast(Any, messages),
+                        temperature=temp,
+                    )
+            content = resp.choices[0].message.content or ""
+            span.end(
+                output=preview_text(content) if self._settings.log_prompt_previews else None,
+            )
+            return content
+        except Exception:
+            span.end(output=None)
+            raise
 
 
 class FakeLLMClient:

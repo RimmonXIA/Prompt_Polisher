@@ -114,7 +114,7 @@ async def run_compiler_async(
     if on_node_start is not None or on_node_done is not None:
         # Stream mode: use astream so callers get per-node lifecycle hooks.
         final_state: GraphState = dict(initial)  # type: ignore
-        
+
         if on_node_start is not None:
             on_node_start("radar", {})
 
@@ -123,11 +123,12 @@ async def run_compiler_async(
                 final_state.update(node_update)
                 if on_node_done is not None:
                     on_node_done(node_name, node_update)
-                
+
                 # Predict next node to drive the interactive spinner accurately
                 next_node = None
                 if node_name == "radar":
                     from prompt_polisher.gate import should_abort_after_radar
+
                     abort, _ = should_abort_after_radar(final_state, settings)
                     next_node = "early_abort" if abort else "routing"
                 elif node_name == "routing":
@@ -136,14 +137,14 @@ async def run_compiler_async(
                     next_node = "critic"
                 elif node_name == "critic":
                     max_iters_reached = (
-                        int(final_state.get("critic_iterations", 0)) 
+                        int(final_state.get("critic_iterations", 0))
                         >= settings.max_critic_iterations
                     )
                     if final_state.get("critic_passed") or max_iters_reached:
                         next_node = "router"
                     else:
                         next_node = "compile"
-                
+
                 if next_node and on_node_start is not None:
                     on_node_start(next_node, {})
 

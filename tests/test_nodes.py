@@ -131,6 +131,7 @@ def test_node_radar_linguistic_entropy_fallback(monkeypatch: pytest.MonkeyPatch)
     # Heuristic for "What's an LLM?" (4 words) should be "low"
     assert radar["linguistic_entropy"] == "low"
 
+
 def test_node_routing_audience_anchor_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     get_settings.cache_clear()
@@ -143,6 +144,7 @@ def test_node_routing_audience_anchor_fallback(monkeypatch: pytest.MonkeyPatch) 
     assert "audience_anchor" in routing
     assert routing["audience_anchor"] == "general public"
 
+
 def test_node_critic_fallback_feedback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     get_settings.cache_clear()
@@ -154,6 +156,7 @@ def test_node_critic_fallback_feedback(monkeypatch: pytest.MonkeyPatch) -> None:
     out = asyncio.run(node_critic(state, llm, settings))  # type: ignore[arg-type]
     assert out["critic_passed"] is False
     assert out["critic_feedback"] == "failure_reason_unspecified"
+
 
 def test_node_compile_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")

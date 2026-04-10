@@ -49,8 +49,7 @@ class RoutingDecision(BaseModel):
     audience_anchor: str = Field(
         default="general public",
         description=(
-            "Target receptor context to stabilize tone and reasoning depth "
-            "for the Target executor."
+            "Target receptor context to stabilize tone and reasoning depth for the Target executor."
         ),
     )
     rationale: str = Field(
@@ -67,11 +66,11 @@ class RoutingDecision(BaseModel):
 
 
 class CompileDraft(BaseModel):
-    """Output of the Compile node: the draft prompt text. 
+    """Output of the Compile node: the draft prompt text.
     This is an Orchestrator payload intended for the Target executor."""
 
     draft: str = Field(
-        default="", 
+        default="",
         description=(
             "Compiled prompt draft. Must convey instructions for the Target "
             "without Orchestrator first-person phrasing."
@@ -116,7 +115,7 @@ class RouterDeliverable(BaseModel):
 class GraphState(TypedDict, total=False):
     """LangGraph state for the Orchestrator's prompt compiler workflow.
 
-    This state object transitions from Author/Invoker input (raw_prompt) through Orchestrator 
+    This state object transitions from Author/Invoker input (raw_prompt) through Orchestrator
     analysis and compilation phases, resulting in deliverables for the Target."""
 
     raw_prompt: str

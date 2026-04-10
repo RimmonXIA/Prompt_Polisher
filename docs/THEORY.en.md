@@ -47,11 +47,11 @@ Subgraphs labeled **Layer 1–8** in [THEORY.zh.md](THEORY.zh.md) tie the produc
 | --- | --- | --- |
 | §1 Input, U-shape, negation, persona | Radar “positive” framing; conditional first/last / long-context hints in compile prompts | Full RULER-style reproduction; end-to-end RAG re-evaluation |
 | §2 CoT, ICL, test-time compute | `<thinking>`-style scaffolding; ICL guidance in `draft`; routing suggests complexity | Multi-sample executors; universal ICL conclusions |
-| §3 Logits / sampling | **Not implemented** — CLI outputs text only | Outlines-style constrained decoding |
+| §3 Logits / Structured Outputs | Native `response_format={"type": "json_schema"}` in router/compile | Outlines-style FSM constrained decoding |
 | §4 Closed loop, PRM | Critic↔Compile loop; optional scalar gate | Full verifier-guided search stacks |
 | §5 Anchor / manifold | `anchor_persona` and wording | Measurable geometric “projection” |
 | §6 Alignment, over-refusal | Radar `alignment_risk`; gate policies | Deployment-specific RM details |
-| §7 Soft prompts, DSPy | `dspy_sketch` text | Trainable soft prompts; runnable DSPy |
+| §7 Soft prompts, DSPy | Native DSPy modules/signatures replacing heuristic jargon texts | Trainable soft prompts; full DSPy optimization loops |
 | Bundled eval baseline | `evalsets/bundled`, `prompt-polisher-eval` (Tier A structure; optional Tier B paired Raw vs compiled + gold) | Full domain benchmarks; universal claims |
 | §8 Injection, jailbreak | Heuristics + Radar JSON; shallow XML rules | CaMeL-style isolation; adaptive attack benchmarks |
 
@@ -61,7 +61,7 @@ Subgraphs labeled **Layer 1–8** in [THEORY.zh.md](THEORY.zh.md) tie the produc
 | --- | --- | --- |
 | §1 Input | Radar, compile context | Negation failures, lost-in-the-middle, persona dilution |
 | §2 Compute | Routing, compile | Single-shot under-powering; ICL format alignment |
-| §3 Sampling | Router (text only in-repo) | Format reliability; sampling tails |
+| §3 Sampling | Router / Structured Outputs | Format reliability; parsing faults |
 | §4 Closed loop | Critic | Error amplification along autoregressive chain |
 | §5 Manifold (§5.9–§5.10) | Routing anchors, Vocab elevation | Vague, “average” outputs; Style mirroring |
 | §6 Alignment | Radar | Over-refusal, alignment tax (term is overloaded) |

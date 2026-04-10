@@ -204,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
         default=8000,
         help="A2A Server port (default: 8000)",
     )
-    
+
     try:
         args = parser.parse_args(argv)
         formats_count = sum([bool(args.markdown), bool(args.envelope)])
@@ -222,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
         import uvicorn
 
         from prompt_polisher.a2a_server import app
-        
+
         print(f"🚀 Starting A2A Server on {args.host}:{args.port}")
         uvicorn.run(app, host=args.host, port=args.port)
         return EXIT_SUCCESS
@@ -351,10 +351,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if renderer:
         renderer.print_result_header()
-        
+
     print(result.get("final_prompt", ""))
-    
+
     if renderer:
         renderer.print_result_footer()
-        
+
     return code

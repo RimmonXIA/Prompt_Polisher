@@ -180,8 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         mode = "structural-only" if args.structural_only else "full"
         n = len(evalset.items)
         print(
-            f"prompt-polisher-eval: starting {n} item(s), mode={mode!r}. "
-            "JSON on stdout when done.",
+            f"prompt-polisher-eval: starting {n} item(s), mode={mode!r}. JSON on stdout when done.",
             file=sys.stderr,
         )
 

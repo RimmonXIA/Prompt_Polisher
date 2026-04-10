@@ -40,8 +40,7 @@ def build_agent_card() -> dict[str, object]:
             "url": "https://github.com/RimmonXIA/Prompt_Polisher",
         },
         "documentationUrl": (
-            "https://github.com/RimmonXIA/Prompt_Polisher"
-            "/blob/main/docs/THEORY.en.md"
+            "https://github.com/RimmonXIA/Prompt_Polisher/blob/main/docs/THEORY.en.md"
         ),
         "defaultInputModes": ["text/plain"],
         "defaultOutputModes": [

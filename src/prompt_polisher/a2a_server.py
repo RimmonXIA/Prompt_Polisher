@@ -111,15 +111,13 @@ async def handle_send_message(
 
     return {
         "jsonrpc": "2.0",
-        "result": {
-            "task": {"id": task_id, "status": {"state": "TASK_STATE_WORKING"}}
-        },
+        "result": {"task": {"id": task_id, "status": {"state": "TASK_STATE_WORKING"}}},
         "id": body.get("id"),
     }
 
 
 async def handle_send_streaming_message(
-    body: dict[str, Any]
+    body: dict[str, Any],
 ) -> EventSourceResponse | dict[str, Any]:
     """Starts a streaming task via Server-Sent Events (SSE)."""
     params = body.get("params", {})
@@ -229,9 +227,7 @@ async def stream_task_events(
             {
                 "jsonrpc": "2.0",
                 "id": rpc_id,
-                "result": {
-                    "task": {"id": task_id, "status": {"state": "TASK_STATE_WORKING"}}
-                },
+                "result": {"task": {"id": task_id, "status": {"state": "TASK_STATE_WORKING"}}},
             }
         )
     }
@@ -247,11 +243,11 @@ async def stream_task_events(
 
         yield _sse_update(task_id, rpc_id, "ST_COMPILE", "Compiling prompt...")
         result = await run_compiler_async(user_input, settings, llm)
-        
+
         aborted = bool(result.get("compilation_aborted"))
         tasks[task_id]["status"] = "COMPLETED" if not aborted else "ABORTED"
         tasks[task_id]["result"] = result
-        
+
         if result.get("compilation_aborted"):
             error_msg = result.get("abort_reason", "Safety Check Failed")
             tasks[task_id]["error"] = error_msg
@@ -262,20 +258,22 @@ async def stream_task_events(
             yield _sse_terminal(task_id, rpc_id, "TASK_STATE_COMPLETED", "Compilation complete")
             # Send final artifact update
             yield {
-                "data": json.dumps({
-                    "jsonrpc": "2.0",
-                    "id": rpc_id,
-                    "result": {
-                        "artifactUpdate": {
-                            "taskId": task_id,
-                            "artifact": {
-                                "id": "final-prompt",
-                                "name": "Compiled Prompt",
-                                "parts": [{"text": result.get("final_prompt", "")}]
+                "data": json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": rpc_id,
+                        "result": {
+                            "artifactUpdate": {
+                                "taskId": task_id,
+                                "artifact": {
+                                    "id": "final-prompt",
+                                    "name": "Compiled Prompt",
+                                    "parts": [{"text": result.get("final_prompt", "")}],
+                                },
                             }
-                        }
+                        },
                     }
-                })
+                )
             }
 
     except Exception as e:
@@ -299,31 +297,35 @@ def _extract_input(params: dict[str, Any]) -> str:
 
 def _sse_update(task_id: str, rpc_id: Any, code: str, message: str) -> dict[str, Any]:
     return {
-        "data": json.dumps({
-            "jsonrpc": "2.0",
-            "id": rpc_id,
-            "result": {
-                "statusUpdate": {
-                    "taskId": task_id,
-                    "status": {"state": "TASK_STATE_WORKING", "code": code, "message": message}
-                }
+        "data": json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": rpc_id,
+                "result": {
+                    "statusUpdate": {
+                        "taskId": task_id,
+                        "status": {"state": "TASK_STATE_WORKING", "code": code, "message": message},
+                    }
+                },
             }
-        })
+        )
     }
 
 
 def _sse_terminal(task_id: str, rpc_id: Any, state: str, message: str) -> dict[str, Any]:
     return {
-        "data": json.dumps({
-            "jsonrpc": "2.0",
-            "id": rpc_id,
-            "result": {
-                "statusUpdate": {
-                    "taskId": task_id,
-                    "status": {"state": state, "message": message}
-                }
+        "data": json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": rpc_id,
+                "result": {
+                    "statusUpdate": {
+                        "taskId": task_id,
+                        "status": {"state": state, "message": message},
+                    }
+                },
             }
-        })
+        )
     }
 
 
