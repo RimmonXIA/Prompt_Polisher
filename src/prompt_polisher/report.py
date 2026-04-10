@@ -182,7 +182,8 @@ def render_compilation_report(
     lines.append("")
     lines.append("## 🔍 Compilation Diagnostics")
     lines.append("<details>")
-    lines.append("<summary>Click to expand internal graph metadata (Radar, Routing, Critic loops)</summary>")
+    summary_text = "Click to expand internal graph metadata (Radar, Routing, Critic loops)"
+    lines.append(f"<summary>{summary_text}</summary>")
     lines.append("")
 
     if include_before_after:

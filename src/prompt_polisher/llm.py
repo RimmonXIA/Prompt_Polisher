@@ -87,7 +87,9 @@ class UniversalLLMClient:
         span = start_llm_span(self._settings, name="llm.chat", input_preview=preview)
         try:
             for attempt in Retrying(
-                retry=retry_if_exception_type((APIConnectionError, litellm.exceptions.APIConnectionError)),
+                retry=retry_if_exception_type(
+                    (APIConnectionError, litellm.exceptions.APIConnectionError)
+                ),
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(5),
                 before_sleep=before_sleep_log(logger, logging.WARNING),
@@ -127,7 +129,9 @@ class UniversalLLMClient:
         span = start_llm_span(self._settings, name="llm.achat", input_preview=preview)
         try:
             async for attempt in AsyncRetrying(
-                retry=retry_if_exception_type((APIConnectionError, litellm.exceptions.APIConnectionError)),
+                retry=retry_if_exception_type(
+                    (APIConnectionError, litellm.exceptions.APIConnectionError)
+                ),
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(5),
                 before_sleep=before_sleep_log(logger, logging.WARNING),

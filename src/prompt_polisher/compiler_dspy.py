@@ -6,7 +6,7 @@ except ImportError:
     dspy = None
 
 
-class DraftCompile(dspy.Signature):
+class DraftCompile(dspy.Signature):  # type: ignore[misc]
     """Compiles a raw user prompt into a highly structured, hardened prompt draft."""
 
     raw_prompt = dspy.InputField(desc="The original string intent from the user")
@@ -20,7 +20,7 @@ class DraftCompile(dspy.Signature):
     )
 
 
-class DraftCritic(dspy.Signature):
+class DraftCritic(dspy.Signature):  # type: ignore[misc]
     """Audits the compiled draft to ensure structural and linguistic integrity."""
 
     draft = dspy.InputField(desc="The compiled draft prompt")
@@ -34,13 +34,13 @@ class DraftCritic(dspy.Signature):
     )
 
 
-class DSPyCompilerModule(dspy.Module):
-    def __init__(self):
+class DSPyCompilerModule(dspy.Module):  # type: ignore[misc]
+    def __init__(self) -> None:
         super().__init__()
         self.compile = dspy.Predict(DraftCompile)
         self.critic = dspy.Predict(DraftCritic)
 
-    def forward(self, raw_prompt: str, radar_analysis: str):
+    def forward(self, raw_prompt: str, radar_analysis: str) -> dspy.Prediction:
         compile_out = self.compile(raw_prompt=raw_prompt, radar_analysis=radar_analysis)
         critic_out = self.critic(draft=compile_out.draft, original_intent=raw_prompt)
 
