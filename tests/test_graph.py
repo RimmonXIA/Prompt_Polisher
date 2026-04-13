@@ -66,7 +66,7 @@ def test_build_graph_runs_with_fake_llm(monkeypatch: pytest.MonkeyPatch) -> None
     llm = CountingFakeLLM(_happy_path_responses())
     out = run_compiler("hello world", settings, llm)
     assert out.get("final_prompt") == "FINAL_PROMPT"
-    assert out.get("critic_passed") is True
+    assert out.get("red_team_critic_passed") is True
     assert out.get("output_route") == "instance"
     assert not out.get("compilation_aborted")
     assert llm.chat_calls == len(_happy_path_responses())
@@ -138,8 +138,8 @@ def test_critic_loop_respects_max_iterations(monkeypatch: pytest.MonkeyPatch) ->
     ]
     llm = FakeLLMClient(responses)
     out = run_compiler("hello world", settings, llm)
-    assert out.get("critic_passed") is False
-    assert out.get("critic_halted_max") is True
+    assert out.get("red_team_critic_passed") is False
+    assert out.get("red_team_critic_halted_max") is True
 
 
 def test_conditional_routing_to_compile(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -158,8 +158,8 @@ def test_conditional_routing_to_compile(monkeypatch: pytest.MonkeyPatch) -> None
     llm = FakeLLMClient(responses)
     app = build_graph(settings, llm)
     out = asyncio.run(app.ainvoke({"raw_prompt": "hello"}))
-    assert out.get("critic_passed") is True
-    assert int(out.get("critic_iterations") or 0) >= 2
+    assert out.get("red_team_critic_passed") is True
+    assert int(out.get("red_team_critic_iterations") or 0) >= 2
 
 
 def test_build_graph_with_prm_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -173,7 +173,7 @@ def test_build_graph_with_prm_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     llm = CountingFakeLLM(_happy_path_responses(with_prm=True))
     out = run_compiler("hello world", settings, llm)
     assert out.get("final_prompt") == "FINAL_PROMPT"
-    assert out.get("critic_passed") is True
+    assert out.get("red_team_critic_passed") is True
     assert out.get("prm_score") == pytest.approx(0.95)
     assert llm.chat_calls == len(_happy_path_responses(with_prm=True))
 
@@ -212,9 +212,9 @@ def test_async_stream_mode_never_double_executes(monkeypatch: pytest.MonkeyPatch
     assert llm.chat_calls == len(responses)
 
     # Assert streams successfully propagated the nodes
-    assert "radar" in started_nodes
-    assert "radar" in done_nodes
-    assert "router" in started_nodes
-    assert "router" in done_nodes
+    assert "intent_sniffer" in started_nodes
+    assert "intent_sniffer" in done_nodes
+    assert "artifact_dispatcher" in started_nodes
+    assert "artifact_dispatcher" in done_nodes
 
     assert out.get("final_prompt") == "FINAL_PROMPT"

@@ -37,8 +37,8 @@ def _happy_state() -> GraphState:
         "raw_prompt": "x",
         "final_prompt": "compiled",
         "compilation_aborted": False,
-        "radar_analysis": {},
-        "routing_decision": {},
+        "intent_sniffer_analysis": {},
+        "compute_aware_routing_decision": {},
         "output_route": "instance",
     }
 
@@ -50,8 +50,8 @@ def _aborted_state() -> GraphState:
         "compilation_aborted": True,
         "abort_reason": "threat_gate",
         "abort_detail": "heuristic",
-        "radar_analysis": {},
-        "routing_decision": {},
+        "intent_sniffer_analysis": {},
+        "compute_aware_routing_decision": {},
     }
 
 

@@ -6,7 +6,7 @@ import pytest
 
 from prompt_polisher.config import get_settings
 from prompt_polisher.llm import FakeLLMClient
-from prompt_polisher.nodes import node_compile, node_radar
+from prompt_polisher.nodes import node_intent_sniffer, node_structured_compiler
 
 
 class RecordingFakeLLM(FakeLLMClient):
@@ -67,7 +67,7 @@ def test_radar_system_prompt_trusted_author_default(monkeypatch: pytest.MonkeyPa
         '"summary":"pedagogical scaffold"}'
     )
     llm = RecordingFakeLLM([radar_json])
-    asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
+    asyncio.run(node_intent_sniffer({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     assert "verified" in system.lower() and "author" in system.lower()
     assert "semantic integrity" in system.lower()
@@ -83,7 +83,7 @@ def test_radar_prompt_defensive_when_author_trust_off(
     llm = RecordingFakeLLM(
         ['{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"s"}'],
     )
-    asyncio.run(node_radar({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
+    asyncio.run(node_intent_sniffer({"raw_prompt": DRR_LIKE_RAW}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     assert "untrusted" in system.lower() and "source" in system.lower()
 
@@ -95,10 +95,10 @@ def test_compile_system_prompt_preserves_methodology(monkeypatch: pytest.MonkeyP
     llm = RecordingFakeLLM(['{"draft":"<user_context>DRR</user_context>"}'])
     state = {
         "raw_prompt": DRR_LIKE_RAW,
-        "radar_analysis": {},
-        "routing_decision": {},
+        "intent_sniffer_analysis": {},
+        "compute_aware_routing_decision": {},
     }
-    asyncio.run(node_compile(state, llm, settings))  # type: ignore[arg-type]
+    asyncio.run(node_structured_compiler(state, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     lower = system.lower()
     assert "integrity of methodology" in lower
@@ -113,8 +113,12 @@ def test_compile_defensive_branch_when_author_trust_off(monkeypatch: pytest.Monk
     settings = get_settings()
     llm = RecordingFakeLLM(['{"draft":"<user_context>x</user_context>"}'])
     asyncio.run(
-        node_compile(
-            {"raw_prompt": "x", "radar_analysis": {}, "routing_decision": {}},
+        node_structured_compiler(
+            {  # type: ignore[arg-type]
+                "raw_prompt": "x",
+                "intent_sniffer_analysis": {},
+                "compute_aware_routing_decision": {},
+            },
             llm,
             settings,
         )  # type: ignore[arg-type]

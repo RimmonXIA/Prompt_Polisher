@@ -12,7 +12,7 @@ from prompt_polisher.llm import FakeLLMClient
 def _happy_path_five_calls() -> list[str]:
     """Radar → routing → compile → critic → router."""
     body = (
-        "<thinking>reason step by step</thinking>"
+        "<task_context>reason step by step</task_context>"
         "<user_context>preserved user block</user_context>" + "x" * 30
     )
     return [
@@ -38,10 +38,10 @@ def test_run_compiler_happy_path_draft_has_expected_xml_blocks(
     out = run_compiler("hello world", settings, FakeLLMClient(_happy_path_five_calls()))
 
     assert not out.get("compilation_aborted")
-    assert out.get("critic_passed") is True
+    assert out.get("red_team_critic_passed") is True
     assert out.get("final_prompt") == "FINAL_PROMPT"
-    draft = str(out.get("draft") or "")
-    assert "<thinking>" in draft
-    assert "</thinking>" in draft
+    draft = str(out.get("compiler_draft") or "")
+    assert "<task_context>" in draft
+    assert "</task_context>" in draft
     assert "<user_context>" in draft
     assert "</user_context>" in draft

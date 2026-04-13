@@ -19,12 +19,12 @@ def test_fence_block_escapes_embedded_triple_backticks() -> None:
 def test_render_compilation_report_includes_sections() -> None:
     state: GraphState = {
         "raw_prompt": "do the thing",
-        "radar_analysis": {"alignment_risk": "low", "threats": []},
-        "routing_decision": {"complexity": "low", "multi_node_recommended": False},
-        "draft": "<user_context>do the thing</user_context>",
-        "critic_passed": True,
-        "critic_iterations": 1,
-        "critic_feedback": "ok",
+        "intent_sniffer_analysis": {"alignment_risk": "low", "threats": []},
+        "compute_aware_routing_decision": {"complexity": "low", "multi_node_recommended": False},
+        "compiler_draft": "<user_context>do the thing</user_context>",
+        "red_team_critic_passed": True,
+        "red_team_critic_iterations": 1,
+        "red_team_critic_feedback": "ok",
         "output_route": "instance",
         "final_prompt": "FINAL",
         "workflow_blueprint": "step 1",
@@ -59,8 +59,8 @@ def test_compilation_report_dict_json_roundtrip() -> None:
         "raw_prompt": "x",
         "final_prompt": "y",
         "output_route": "dspy",
-        "critic_passed": False,
-        "critic_iterations": 2,
+        "red_team_critic_passed": False,
+        "red_team_critic_iterations": 2,
     }
     d = compilation_report_dict(state, include_summary=True, include_before_after=True)
     json.dumps(d)

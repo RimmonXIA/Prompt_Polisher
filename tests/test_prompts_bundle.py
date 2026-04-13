@@ -8,7 +8,7 @@ import pytest
 
 from prompt_polisher.config import get_settings
 from prompt_polisher.llm import FakeLLMClient
-from prompt_polisher.nodes import node_radar
+from prompt_polisher.nodes import node_intent_sniffer
 from prompt_polisher.prompts_bundle import clear_prompt_bundle_cache, prompt_bundle
 
 
@@ -69,7 +69,7 @@ def test_prompts_dir_overrides_single_file(
 
     radar_json = '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"s"}'
     llm = _CaptureFakeLLM([radar_json])
-    asyncio.run(node_radar({"raw_prompt": "hello"}, llm, settings))  # type: ignore[arg-type]
+    asyncio.run(node_intent_sniffer({"raw_prompt": "hello"}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     assert marker in system
     assert "Node 1" in system
