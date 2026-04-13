@@ -4,7 +4,7 @@
 
 ## What this project claims
 
-Prompt engineering is treated as **structured intervention** on (at least) **attention**, **test-time compute** (tokens, CoT-style scaffolding), **output distributions / decoding**, and **safety boundaries** — not as a one-shot paraphrase. The codebase implements a **multi-stage LangGraph workflow**: Radar → optional **ThreatGate** → Routing → Compile → Critic (with optional **PRM-style** scalar gating) → Router.
+Prompt engineering is treated as **structured intervention** on (at least) **attention**, **test-time compute** (tokens, CoT-style scaffolding), **output distributions / decoding**, and **safety boundaries** — not as a one-shot paraphrase. The codebase implements a **multi-stage LangGraph workflow**: Intent Sniffer (Radar) → optional **Safety Gate** → Compute-Aware Router → Structured Compiler → Red-Team Critic (with optional **PRM-style** scalar gating) → Artifact Dispatcher.
 
 **Non-claims:** The tool does **not** guarantee task success, formal safety, global optimality, or portability across every model and API. See [Limits and non-claims](#limits-and-non-claims) and [When not to use this tool](#when-not-to-use-this-tool).
 
@@ -13,18 +13,24 @@ Prompt engineering is treated as **structured intervention** on (at least) **att
 To prevent role confusion and "Identity Loops", the system strictly enforces the following entities and data objects:
 1. **Invoker**: The user or automated agent making the request to the CLI/API.
 2. **Author**: The creator of the `raw_prompt` (often the same as the Invoker, but conceptually distinct for trust/source tracking).
-3. **Orchestrator (Prompt Polisher)**: The LangGraph compilation pipeline. It acts as an analyst/architect and speaks in the *third person* regarding the prompt. It NEVER role-plays as the final assistant.
-4. **Inference Engine (LLM)**: The raw compute provider executing our internal nodes (Radar, Compile, Critic). Since v0.2.0, this is **provider-agnostic** via the LiteLLM gateway, supporting OpenAI, Anthropic, Gemini, DeepSeek, and mainstream Chinese providers (Qwen, GLM, etc.).
+3. **Orchestrator (Prompt Polisher)**: The LangGraph compilation pipeline. It acts as an analyst/architect and speaks in the *neutral third person* regarding the prompt. It NEVER role-plays as the final assistant.
+4. **Inference Engine (LLM)**: The raw compute provider executing our internal nodes (Intent Sniffer, Structured Compiler, Red-Team Critic). Since v0.2.0, this is **provider-agnostic** via the LiteLLM gateway, supporting OpenAI, Anthropic, Gemini, DeepSeek, and mainstream Chinese providers (Qwen, GLM, etc.).
 5. **Target (Executor)**: The downstream model that will eventually receive and execute the `final_prompt`.
+
+### Persona Discipline
+To eliminate the "Identity Loop" vulnerability, the system enforces a strict pronoun register within the compile draft:
+- **Task Context**: Replacing the legacy `<thinking>` block. Must use **impersonal third-person** analysis (e.g., "This task requires...") to prevent the Orchestrator's internal voice from leaking into the Target's context.
+- **Direct Instructions**: Second-person imperative for the Target (e.g., "You are...", "You must...").
+- **Orchestrator Invisibility**: The pipeline's private reasoning is strictly forbidden in the final artifact; any leakage of the Orchestrator persona (e.g., "As the compiler, I...") will be rejected by the Critic.
 
 ## Pipeline (aligned with code)
 
-1. **Radar** — Intent decomposition, heuristic alignment/injection signals, JSON-shaped analysis merged into graph state.
-2. **ThreatGate** — Config-driven early abort after Radar; skips Route, Compile, Critic, and Router when triggered.
-3. **Routing** — Complexity and multi-node recommendations; persona / style anchoring (metaphorically “manifold addressing”; **analogy**, not proven geometry).
-4. **Compile** — Structured assembly into a `draft`: XML-ish sandboxing, first/last emphasis, optional `<thinking>`-style scaffolding, **§2.5-style ICL/few-shot guidance embedded in the draft text** (not a separate JSON field for ICL).
-5. **Critic** — Rule checks first; optional scalar **PRM-like** score before the text critic; FAIL loops back to Compile up to `MAX_CRITIC_ITERATIONS`.
-6. **Router** — Text deliverables: final prompt, workflow blueprint, DSPy-style sketch.
+1. **Intent Sniffer (Radar)** — Intent decomposition, heuristic alignment/injection signals, JSON-shaped analysis merged into graph state.
+2. **Safety Gate** — Config-driven early abort after Sniffer; skips subsequent nodes when triggered.
+3. **Compute-Aware Router** — Complexity and multi-node recommendations; persona / style anchoring.
+4. **Structured Compiler** — Structured assembly into a `compiler_draft`: XML sandboxing, first/last emphasis, and the **<task_context>** block which provides impersonal briefing for the Target.
+5. **Red-Team Critic** — Persona and rule checks; FAIL loops back to Compile up to `MAX_CRITIC_ITERATIONS`.
+6. **Artifact Dispatcher** — Final delivery routing for text, blueprints, and DSPy sketches.
 
 **Radar JSON field hints** (keys are **model-dependent**; common examples—see [README.md](../README.md) implementation table):
 
@@ -45,28 +51,28 @@ Subgraphs labeled **Layer 1–8** in [THEORY.zh.md](THEORY.zh.md) tie the produc
 
 | Concern | In this repo | Mostly elsewhere |
 | --- | --- | --- |
-| §1 Input, U-shape, negation, persona | Radar “positive” framing; conditional first/last / long-context hints in compile prompts | Full RULER-style reproduction; end-to-end RAG re-evaluation |
-| §2 CoT, ICL, test-time compute | `<thinking>`-style scaffolding; ICL guidance in `draft`; routing suggests complexity | Multi-sample executors; universal ICL conclusions |
+| §1 Input, U-shape, negation, persona | Intent Sniffer positive framing; conditional first/last / long-context hints in compile prompts | Full RULER-style reproduction; end-to-end RAG re-evaluation |
+| §2 CoT, ICL, test-time compute | **<task_context>** scaffolding; ICL guidance in `compiler_draft`; routing suggests complexity | Multi-sample executors; universal ICL conclusions |
 | §3 Logits / Structured Outputs | Native `response_format={"type": "json_schema"}` in router/compile | Outlines-style FSM constrained decoding |
-| §4 Closed loop, PRM | Critic↔Compile loop; optional scalar gate | Full verifier-guided search stacks |
+| §4 Closed loop, PRM | Red-Team Critic loop; optional scalar gate | Full verifier-guided search stacks |
 | §5 Anchor / manifold | `anchor_persona` and wording | Measurable geometric “projection” |
-| §6 Alignment, over-refusal | Radar `alignment_risk`; gate policies | Deployment-specific RM details |
-| §7 Soft prompts, DSPy | Native DSPy modules/signatures replacing heuristic jargon texts | Trainable soft prompts; full DSPy optimization loops |
+| §6 Alignment, over-refusal | Intent Sniffer `alignment_risk`; gate policies | Deployment-specific RM details |
+| §7 Soft prompts, DSPy | `dspy_sketch` text sketches | Trainable soft prompts; full DSPy optimization loops |
 | Bundled eval baseline | `evalsets/bundled`, `prompt-polisher-eval` (Tier A structure; optional Tier B paired Raw vs compiled + gold) | Full domain benchmarks; universal claims |
-| §8 Injection, jailbreak | Heuristics + Radar JSON; shallow XML rules | CaMeL-style isolation; adaptive attack benchmarks |
+| §8 Injection, jailbreak | Heuristics + Intent Sniffer JSON; shallow XML rules | CaMeL-style isolation; adaptive attack benchmarks |
 
 ## Theory map (compact)
 
 | Full theory (§) | Workflow focus | Typical pain (empirical / analogy) |
 | --- | --- | --- |
-| §1 Input | Radar, compile context | Negation failures, lost-in-the-middle, persona dilution |
-| §2 Compute | Routing, compile | Single-shot under-powering; ICL format alignment |
-| §3 Sampling | Router / Structured Outputs | Format reliability; parsing faults |
-| §4 Closed loop | Critic | Error amplification along autoregressive chain |
+| §1 Input | Intent Sniffer, context strategies | Negation failures, lost-in-the-middle, persona dilution |
+| §2 Compute | Structured Compiler, `<task_context>` | Single-shot under-powering; ICL format alignment |
+| §3 Sampling | Dispatcher / Structured Outputs | Format reliability; parsing faults |
+| §4 Closed loop | Red-Team Critic | Error amplification along autoregressive chain |
 | §5 Manifold (§5.9–§5.10) | Routing anchors, Vocab elevation | Vague, “average” outputs; Style mirroring |
-| §6 Alignment | Radar | Over-refusal, alignment tax (term is overloaded) |
+| §6 Alignment | Intent Sniffer | Over-refusal, alignment tax (term is overloaded) |
 | §7 Automation | Blueprint / DSPy sketch | Manual prompt tuning cost |
-| §8 Adversarial | Radar + Critic | Injection / jailbreak; **defense needs system design** |
+| §8 Adversarial | Intent Sniffer + Red-Team Critic | Injection / jailbreak; **defense needs system design** |
 
 ## Limits and non-claims
 

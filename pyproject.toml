@@ -1,7 +1,7 @@
 [project]
 name = "prompt-polisher"
-version = "0.1.0"
-description = "Python CLI: LangGraph multi-node prompt compiler (radar, threat gate, routing, compile, critic); structured JSON reports and versioned agent envelope; LangChain-core compatible stack."
+version = "0.2.0"
+description = "Python CLI: LangGraph multi-node prompt compiler (intent_sniffer, safety_abort_gate, compute_aware_router, structured_compiler, red_team_critic); structured JSON reports and versioned agent envelope; LangChain-core compatible stack."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

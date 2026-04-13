@@ -4,7 +4,7 @@
 
 **English bridge（非权威摘要）：** 面向国际读者与简历场景的英文导读、实现范围摘要、不适用场景与相关工作对照见 [THEORY.en.md](THEORY.en.md)；与本文冲突时以**本文**为准。
 
-主链与代码一致：**Radar → ThreatGate（可选）→ Route → Compile → Critic → Router**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Router 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
+主链与代码一致：**Intent Sniffer (Radar) → Safety Gate (可选) → Compute-Aware Router → Structured Compiler → Red-Team Critic → Artifact Dispatcher**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Dispatcher 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
 
 ## 架构分类与实体定义 (Architecture Taxonomy)
 
@@ -12,8 +12,14 @@
 1. **调用方/发起者 (Invoker)**: 触发 CLI/API 的用户或自动化主体。
 2. **作者 (Author)**: `raw_prompt` 的提出者与意图来源（概念上需与调配逻辑解耦，以评估信任度）。
 3. **编排器 (Orchestrator, 即 Prompt Polisher 本身)**: 我们的 LangGraph 编译流水线。它以第三人称的“分析师/架构师”身份行事，**绝不**在此阶段进行最终助手的角色扮演 (role-play)。
-4. **推理引擎 (Inference Engine, 节点 LLM)**: 驱动内部节点（Radar, Compile, Critic）的算力源。自 v0.2.0 起，通过 LiteLLM 实现了供应商中立 (Provider-agnostic)，支持从 OpenAI, Anthropic, Gemini 到国内主流厂商（Qwen, GLM 等）的无缝切换。
+4. **推理引擎 (Inference Engine, 节点 LLM)**: 驱动内部节点（Intent Sniffer, Structured Compiler, Red-Team Critic 等）的算力源。自 v0.2.0 起，通过 LiteLLM 实现了供应商中立 (Provider-agnostic)，支持从 OpenAI, Anthropic, Gemini 到国内主流厂商（Qwen, GLM 等）的无缝切换。
 5. **执行目标 (Target / Executor)**: 最终接收并运行 `final_prompt` 或工作流的下游模型。
+
+### 身份隔离准则 (Persona & Pronoun Discipline)
+为彻底解决 Identity Loop，系统要求在编译制品（Draft）内严格执行人称规约：
+- **客观简报 (Task Context)**: 代替原有的 `<thinking>` 内部推理块。必须使用**中立第三人称/非人称分析视角**（例如 "This task involves..."，而非 "I will..."）。
+- **指令集 (Instructions)**: 对 Target 使用**第二人称**（"You are...", "You must..."）。
+- **编排器隐身**: 编排器自身的私有推理（"I need to structure this..."）**严禁**泄露进制品，一旦泄露将被 Critic 拦截。
 
 ## 架构图解
 
@@ -32,28 +38,28 @@ graph TD
     Input(["用户输入 RawPrompt"])
 
     %% Node 1
-    subgraph S1 ["Node 1: 意图解构与对齐雷达"]
+    subgraph S1 ["Node 1: Intent Sniffer (意图嗅探与对齐雷达)"]
         N1["类型嗅探 & 威胁检测"]
         T1["Layer 3: 隐空间正向转化 (剥离负向特征)<br>Layer 6: 偏好对齐与误拒缓解 (RM/DPO 等训练目标)<br>Layer 8: 提示词注入风险检测"]
         N1 -.- T1
     end
 
     %% Node 2
-    subgraph S2 ["Node 2: 算力调度与流形寻址"]
+    subgraph S2 ["Node 2: Compute-Aware Router (智能算力调度)"]
         N2["架构裁决 & 锚点计算"]
         T2["Layer 2: 自回归前向算力分配 (CoT→FLOPs)<br>Layer 5: 预训练流形投影寻址 (计算 x_anchor)"]
         N2 -.- T2
     end
 
     %% Node 3
-    subgraph S3 ["Node 3: 结构化编译与防御组装"]
+    subgraph S3 ["Node 3: Structured Compiler (结构化防御编译)"]
         N3["多轨组装引擎 (Instance/Template/DSPy)"]
         T3["Layer 1: 对抗 U 型注意力衰减 (首尾约束强化)<br>Layer 7: 连续空间与自动化 (DSPy 代码编译)<br>Layer 8: 对抗边界构建 (XML 沙盒隔离)"]
         N3 -.- T3
     end
 
     %% Node 4
-    subgraph S4 ["Node 4: 闭环反思与红队对抗"]
+    subgraph S4 ["Node 4: Red-Team Critic (红队反思审查)"]
         N4{"Critic: 离散状态审查"}
         T4["Layer 4: 离散状态空间重采样 (模拟梯度下降)<br>Layer 8: 边界抗压测试 (指令逃逸评估)"]
         N4 -.- T4
@@ -66,15 +72,15 @@ graph TD
 
     %% 流程连接
     Input -->|注入全局 State| N1
-    N1 -->|雷达 JSON| Gate{"ThreatGate<br>可选提前终止"}
+    N1 -->|嗅探结果 JSON| Gate{"Safety Gate<br>安全中止检查"}
     Gate -->|继续| N2
     Gate -->|中止| Abort(["提前终止<br>不进入后续节点"])
     N2 -->|下发算力分配 & 锚点策略| N3
     N3 -->|生成草稿 Draft| N4
     
     %% 路由循环
-    N4 -->|FAIL: 检出致命缺陷/逃逸漏洞| N3
-    N4 -->|PASS: 符合设计与安全约束| Router(("输出路由<br>文本制品分岔"))
+    N4 -->|FAIL: 检出致命缺陷/身份环路/逃逸漏洞| N3
+    N4 -->|PASS: 符合设计与安全约束| Router(("Artifact Dispatcher<br>制品路由分发"))
 
     %% 分发
     Router -->|Instance / Template| Output1
@@ -96,16 +102,16 @@ graph TD
 
 ### 图注与实现边界
 
-- **ThreatGate**：与实现中 Radar 之后的威胁闸门一致（配置项与启发式/雷达信号决定是否**跳过** Route、Compile、Critic、Router）；触发时进入提前终止路径，仅输出中止说明类制品。
-- **Router 节点**：本仓库实现侧为 **文本级** 输出路由与制品（如最终 prompt、工作流蓝图、DSPy 式草图）；**logits 硬截断、温度、top-p** 等属于 **§3** 所述**下游调用模型时的解码栈**，见 [局限性与非承诺声明](#局限性与非承诺声明) 第 3 条。
+- **Safety Gate**：与实现中 Intent Sniffer 之后的闸门一致（配置项与启发式/嗅探信号决定是否**跳过**后续节点）；触发时进入提前终止路径，仅输出中止说明类制品。
+- **Artifact Dispatcher 节点**：本仓库实现侧为 **文本级** 输出路由与制品（如最终 prompt、工作流蓝图、DSPy 式草图）；**logits 硬截断、温度、top-p** 等属于 **§3** 所述**下游调用模型时的解码栈**，见 [局限性与非承诺声明](#局限性与非承诺声明) 第 3 条。
 - **T_Logits（虚线）**：表示完整理论中的 **§3.6** 机制示意，**不**表示本 CLI 内已集成约束解码库；与 Router 的并列便于从理论地图阅读，避免将「图上的 Router」误读为「已在包内做 logits 工程」。
 
 ### 本仓库实现范围（对照理论地图）
 
 | 理论地图关切 | 本仓库内（LangGraph、规则、内置 prompts） | 主要在文献、下游或系统层 |
 | --- | --- | --- |
-| §1 输入、U 型/RAG 限定、否定、Persona | Radar 正向化；Compile 提示中的**条件性**首尾/长上下文指引；`user_context` 等隔离叙事 | RULER 系评测、Cuconasu 式 RAG 再评估的**完整复现** |
-| §2 CoT、ICL、测试时算力 | `<thinking>` 与 Compile 内 **ICL/few-shot** 指引（写入 `draft` 文本）；Routing 判复杂度；Router 文案可建议 Self-Consistency 等 | 多轨迹采样与聚合的**执行器**；权重内 ICL 的普遍结论 |
+| §1 输入、U 型/RAG 限定、否定、Persona | Intent Sniffer 正向化；Compile 提示中的**条件性**首尾/长上下文指引；`user_context` 等隔离叙事 | RULER 系评测、Cuconasu 式 RAG 再评估的**完整复现** |
+| §2 CoT、ICL、测试时算力 | `<task_context>` 与 Compile 内 **ICL/few-shot** 指引（写入 `compiler_draft` 文本）；Routing 判复杂度；Dispatcher 文案可建议 Self-Consistency 等 | 多轨迹采样与聚合的**执行器**；权重内 ICL 的普遍结论 |
 | §3 logits、采样 | 无：CLI **只产出文本**；README 要求用户在最终 API 配置解码 | Outlines 等约束解码实现 |
 | §4 闭环、PRM | Critic↔Compile 回路；可选 PRM 标量门控 | 解码器内验证器搜索栈 |
 | §5 锚点/流形隐喻 | `anchor_persona` 与措辞建议 | 可测几何「投影」 |
@@ -158,16 +164,16 @@ graph TD
 
 Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、带反馈闭环的 Agentic Workflow 架构，对输入做**分阶段、系统化重构**：
 
-* **步骤 1：意图解构与对齐雷达 (Radar)**
+* **步骤 1：意图嗅探与对齐雷达 (Intent Sniffer)**
     剥离所有的负向表述并强制转化为正向特征；同时作为一个安全雷达，嗅探任务是否会触发模型的“对齐拦截”，或者是否存在外部变量注入的风险。
-* **（可选）威胁闸门 (ThreatGate)**  
-    Radar 之后若满足配置与风险条件，可**提前终止**流水线，不进入后续路由/编译/Critic/Router；与架构图中 `ThreatGate` 分支一致，用于在极高风险场景下避免继续放大不可信输入。
-* **步骤 2：架构裁决与流形寻址 (Routing & Anchoring)**
-    计算任务复杂度，突破“单次调用”思维。如果任务超出了单次前向传播的算力极限，引擎会直接建议将其拆解为多节点的 AI 工作流；同时给出**角色与风格锚定**建议，以在经验上提高指令清晰度与输出一致性（“流形/召唤”为 **Analogy**，见 §5.9）。
-* **步骤 3：结构化机制向编译 (Compiling)**
-    按照底层约束进行文本的结构化组装。强制执行首尾强化（对抗注意力衰减）、XML 沙盒隔离（防御外部变量劫持）、注入 `<thinking>` 标签（用序列长度换取推理算力的经验做法），并在需要时用 **少样本示范（ICL）** 块对齐输出形态（见 §2.5；实现上写入 `draft` 文本，而非单独 JSON 字段）。
-* **步骤 4：闭环红队审查 (Critic)**
-    系统内置一个严苛的“红队审查员”。如果上一步生成的提示词未能遵守上述设计与安全约束，审查员会将其阻断并打回重置，在离散文本空间上**启发式重采样**，迭代改进（**Analogy**：可类比为离散空间中的近似优化，**非**可证的全局最优）。
+* **（可选）安全检查闸门 (Safety Gate)**  
+    嗅探之后若满足严重风险条件，可**提前终止**流水线。
+* **步骤 2：智能架构裁决与流形寻址 (Compute-Aware Router)**
+    计算任务复杂度，突破“单次调用”思维。如果任务超出了单次前向传播的算力极限，引擎会引导将其拆解为多节点的 AI 工作流；同时给出**角色与风格锚定**建议。
+* **步骤 3：结构化机制向编译 (Structured Compiler)**
+    按照底层约束进行文本的结构化组装。强制执行首尾强化、XML 沙盒隔离、注入 `<task_context>` 标签（用序列长度换取推理算力），并在需要时用 **少样本示范（ICL）** 对齐输出形态。
+* **步骤 4：闭环红队审查 (Red-Team Critic)**
+    系统内置一个严苛的“红队审查员”。如果上一步生成的提示词未能遵守人称隔离、设计与安全约束，审查员会将其阻断并打回重置，在离散文本空间上**启发式重采样**，迭代改进。
 
 > **证据等级：** 工程架构描述 + Analogy（闭环优化）。
 
@@ -421,7 +427,7 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 
 1. **不更新权重**：本文所述干预默认在**推理时**通过上下文与解码配置完成；除非明确实施微调/软提示训练，否则不改变模型参数。  
 2. **无通用安全保证**：任何模板、XML 沙箱标签或 Critic 规则都**不能**替代正式威胁建模、红队、监控与组织策略；对闭源与多模态系统的攻击面未在本文穷尽。防御宣称需在**自适应攻击**等强评测协议下审视（见 §8.13 Nasr et al.）。  
-3. **模型与解码器相关**：`<thinking>`、工具调用、logits 掩码等行为依赖**具体提供商 API、模型版本与解码栈**；文中“机制层面的经验概括”等用语均为**工程经验与类比**的简写。  
+3. **模型与解码器相关**：`<task_context>`、工具调用、logits 掩码等能力依赖**具体提供商 API、模型版本与解码栈**；文中“机制层面的经验概括”等用语均为**工程经验与类比**的简写。  
 4. **证据等级**：各节已标注 **Empirical / Mechanistic / Analogy / Speculation**；未标注为 Empirical 的句子**不应**被理解为已对所有 LLM 成立的定理。  
 5. **可选过程打分（PRM 式）**：实现上可对编译产物先做 **启发式标量评分** 再进入文本 Critic，与「验证器/过程信号裁剪轨迹」同族，但**仍非**形式验证，亦不构成普适安全或质量保证。
 
@@ -429,7 +435,7 @@ Prompt-Polisher 摒弃了传统的“单次文本重写”，采用多节点、�
 
 ## 总结
 
-**一句收束**：固定权重下，提示词是对 **注意力、算力、logits、对齐边界** 的**分层、可迭代干预**；本项目以 **四节点主链**（Radar 后**可选**威胁闸门）将核心叙事**产品化**，并以证据等级区分实证、机制叙述、类比与推测（详见 [局限性与非承诺声明](#局限性与非承诺声明)）。
+**一句收束**：固定权重下，提示词是对 **注意力、算力、logits、对齐边界** 的**分层、可迭代干预**；本项目以 **Intent Sniffer → Compute-Aware Router → Structured Compiler → Red-Team Critic**（含可选安全闸门）的主链将核心叙事**产品化**，并以证据等级区分实证、机制叙述、类比与推测（详见 [局限性与非承诺声明](#局限性与非承诺声明)）。
 
 **八层与理论地图同构**（证据强度见各 **§m.n**）：输入（RAG/位置、RULER 系评测、Persona、否定失效）→ 计算（CoT、ICL、测试时算力与 Self-Consistency）→ 输出采样（掩码、温度/top-p/top-k）→ 闭环（Critic 式重试、验证器引导搜索）→ 隐喻寻址（流形/锚点）→ 对齐（RLHF/DPO、误拒）→ 自动化（软提示、DSPy）→ 对抗（注入/越狱；**防御**靠系统层与实证评测而非单模板）。
 

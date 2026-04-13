@@ -45,30 +45,30 @@ Entry: [`pyproject.toml`](../pyproject.toml) → `prompt_polisher.cli:main`. Ins
 ```mermaid
 flowchart TD
   startNode([START])
-  radar[radar_LLM]
-  gate{should_abort_after_radar}
-  earlyAbort[early_abort_deterministic]
-  routing[routing_LLM]
-  compile[compile_LLM]
-  critic[critic_LLM]
-  afterCritic{critic_passed_or_max_iters}
-  router[router_LLM]
+  intent_sniffer[intent_sniffer_LLM]
+  gate{should_abort_after_intent_sniffer}
+  safetyAbortGate[safety_abort_gate_deterministic]
+  compute_aware_router[compute_aware_router_LLM]
+  structured_compiler[structured_compiler_LLM]
+  red_team_critic[red_team_critic_LLM]
+  afterCritic{red_team_critic_passed_or_max_iters}
+  artifact_dispatcher[artifact_dispatcher_LLM]
   endNode([END])
 
-  startNode --> radar
-  radar --> gate
-  gate -->|abort_true| earlyAbort
-  gate -->|abort_false| routing
-  routing --> compile
-  compile --> critic
-  critic --> afterCritic
-  afterCritic -->|retry_compile| compile
-  afterCritic -->|to_router| router
-  router --> endNode
-  earlyAbort --> endNode
+  startNode --> intent_sniffer
+  intent_sniffer --> gate
+  gate -->|abort_true| safetyAbortGate
+  gate -->|abort_false| compute_aware_router
+  compute_aware_router --> structured_compiler
+  structured_compiler --> red_team_critic
+  red_team_critic --> afterCritic
+  afterCritic -->|retry_compile| structured_compiler
+  afterCritic -->|to_dispatcher| artifact_dispatcher
+  artifact_dispatcher --> endNode
+  safetyAbortGate --> endNode
 ```
 
-[`should_abort_after_radar`](../src/prompt_polisher/gate.py) drives `gate` (heuristic injection, radar threats, alignment flags). `afterCritic`: `critic_passed` or max iterations → `router`, else → `compile`. `early_abort` sets `compilation_aborted` and gate copy from [`prompts_bundle`](../src/prompt_polisher/prompts_bundle.py); no further LLM calls.
+[`should_abort_after_intent_sniffer`](../src/prompt_polisher/gate.py) drives `gate` (heuristic injection, threats, alignment flags). `afterCritic`: `red_team_critic_passed` or max iterations → `artifact_dispatcher`, else → `structured_compiler`. `safety_abort_gate` sets `compilation_aborted` and gate copy from [`prompts_bundle`](../src/prompt_polisher/prompts_bundle.py); no further LLM calls.
 
 ### Diagram 2b — `prompts/*.txt` per node
 
@@ -86,26 +86,26 @@ flowchart TB
   loadFn --> PB[PromptBundle]
 
   subgraph llm [LLM_nodes_in_nodes_py]
-    PB --> nRadar[radar]
-    PB --> nRoute[routing]
-    PB --> nCompile[compile]
-    PB --> nCritic[critic]
-    PB --> nRouter[router]
+    PB --> nSniffer[intent_sniffer]
+    PB --> nRouter[compute_aware_router]
+    PB --> nCompiler[structured_compiler]
+    PB --> nCritic[red_team_critic]
+    PB --> nDispatcher[artifact_dispatcher]
 
-    nRadar --> sR[system_base_plus_trust_slice]
-    nRadar --> uR[radar_user_Template]
-    nRoute --> sRt[system_base_plus_trust_slice]
-    nRoute --> uRt[routing_user_Template]
-    nCompile --> sC[system_base_plus_trust_slice]
-    nCompile --> uC[JSON_user_assembled_in_code]
+    nSniffer --> sR[system_base_plus_trust_slice]
+    nSniffer --> uR[radar_user_Template]
+    nRouter --> sRt[system_base_plus_trust_slice]
+    nRouter --> uRt[routing_user_Template]
+    nCompiler --> sC[system_base_plus_trust_slice]
+    nCompiler --> uC[JSON_user_assembled_in_code]
     nCritic --> sCr[system_base_plus_trust_slice]
     nCritic --> uCr[critic_user_Template]
-    nRouter --> sRo[system_base_plus_trust_slice]
-    nRouter --> uRo[JSON_user_assembled_in_code]
-    nRouter --> fb[router_fallback_workflow_and_dspy]
+    nDispatcher --> sRo[system_base_plus_trust_slice]
+    nDispatcher --> uRo[JSON_user_assembled_in_code]
+    nDispatcher --> fb[router_fallback_workflow_and_dspy]
   end
 
-  subgraph det [early_abort_in_gate_py]
+  subgraph det [safety_abort_gate_in_gate_py]
     PB --> nGate[gate_abort_helpers]
     nGate --> gUser[gate_abort_user_message_Template]
     nGate --> gWf[gate_abort_workflow_blueprint_static]
@@ -114,12 +114,12 @@ flowchart TB
 
 | Step | System | User | Extras |
 | --- | --- | --- | --- |
-| `radar` | `radar_system_*` | `radar_user.txt` | — |
-| `routing` | `routing_system_*` | `routing_user.txt` | — |
-| `compile` | `compile_system_*` | JSON in [`nodes.py`](../src/prompt_polisher/nodes.py) | — |
-| `critic` | `critic_system_*` | `critic_user.txt` | PRM optional in code |
-| `router` | `router_system_*` | JSON in `nodes.py` | Fallback: `router_fallback_workflow.txt`, `router_fallback_dspy.txt` |
-| `early_abort` | — | `gate_abort_user_message.txt` | `gate_abort_workflow_blueprint.txt` |
+| `intent_sniffer` | `radar_system_*` | `radar_user.txt` | — |
+| `compute_aware_router` | `routing_system_*` | `routing_user.txt` | — |
+| `structured_compiler` | `compile_system_*` | JSON in [`nodes.py`](../src/prompt_polisher/nodes.py) | — |
+| `red_team_critic` | `critic_system_*` | `critic_user.txt` | PRM optional |
+| `artifact_dispatcher` | `router_system_*` | JSON in `nodes.py` | Fallback: `router_fallback_workflow.txt`, `router_fallback_dspy.txt` |
+| `safety_abort_gate` | — | `gate_abort_user_message.txt` | `gate_abort_workflow_blueprint.txt` |
 
 `*_system_*` = `*_system_base.txt` + `*_system_trusted.txt` or `*_system_untrusted.txt`. Template fields for `*_user.txt` match the `PromptBundle` methods in [`prompts_bundle.py`](../src/prompt_polisher/prompts_bundle.py).
 
@@ -164,48 +164,48 @@ flowchart TD
     raw[raw_prompt]
   end
 
-  subgraph node_radar [Node_radar]
-    ra[radar_analysis]
+  subgraph node_intent_sniffer [Node_intent_sniffer]
+    ra[intent_sniffer_result]
   end
 
-  subgraph node_abort [Node_early_abort]
+  subgraph node_abort [Node_safety_abort_gate]
     ab[compilation_aborted abort_reason abort_detail]
-    abOut[final_prompt workflow_blueprint dspy_sketch output_route draft critic_fields]
+    abOut[final_prompt workflow_blueprint dspy_sketch output_route compiler_draft red_team_critic_fields]
   end
 
   subgraph path_main [Happy_path_nodes]
-    subgraph node_routing [Node_routing]
-      rd[routing_decision]
+    subgraph node_compute_aware_router [Node_compute_aware_router]
+      rd[compute_aware_routing_decision]
     end
-    subgraph node_compile [Node_compile]
-      dr[draft]
+    subgraph node_structured_compiler [Node_structured_compiler]
+      dr[compiler_draft]
     end
-    subgraph node_critic [Node_critic]
-      cr[critic_passed critic_feedback critic_iterations]
-      prm[prm_score_optional]
+    subgraph node_red_team_critic [Node_red_team_critic]
+      cr[red_team_critic_passed red_team_critic_feedback red_team_critic_iterations]
+      prm[prm_score]
     end
-    subgraph node_router [Node_router]
-      ro[output_route final_prompt workflow_blueprint dspy_sketch critic_halted_max]
+    subgraph node_artifact_dispatcher [Node_artifact_dispatcher]
+      ro[output_route final_prompt workflow_blueprint dspy_sketch red_team_critic_halted_max]
     end
   end
 
-  initial --> node_radar
-  node_radar -->|should_abort| node_abort
-  node_radar -->|continue| path_main
-  node_routing --> node_compile
-  node_compile --> node_critic
-  node_critic -->|retry| node_compile
-  node_critic -->|to_router| node_router
+  initial --> node_intent_sniffer
+  node_intent_sniffer -->|should_abort| node_abort
+  node_intent_sniffer -->|continue| path_main
+  node_compute_aware_router --> node_structured_compiler
+  node_structured_compiler --> node_red_team_critic
+  node_red_team_critic -->|retry| node_structured_compiler
+  node_red_team_critic -->|to_dispatcher| node_artifact_dispatcher
 ```
 
 | Stage | Keys |
 | --- | --- |
 | initial | `raw_prompt` |
-| `radar` | `radar_analysis` |
-| `early_abort` | abort fields, deliverables, `output_route`; clears draft/critic fields ([`gate.py`](../src/prompt_polisher/gate.py)) |
-| `routing` | `routing_decision` |
-| `compile` | `draft` |
-| `critic` | `critic_passed`, `critic_feedback`, `critic_iterations`; optional `prm_score` |
-| `router` | `output_route`, `final_prompt`, `workflow_blueprint`, `dspy_sketch`, `critic_halted_max` |
+| `intent_sniffer` | `intent_sniffer_analysis` |
+| `safety_abort_gate` | abort fields, deliverables, `output_route`; clears draft/critic fields |
+| `compute_aware_router` | `compute_aware_routing_decision` |
+| `structured_compiler` | `compiler_draft` |
+| `red_team_critic` | `red_team_critic_passed`, `red_team_critic_feedback`, `red_team_critic_iterations`; optional `prm_score` |
+| `artifact_dispatcher` | `output_route`, `final_prompt`, `workflow_blueprint`, `dspy_sketch`, `red_team_critic_halted_max` |
 
-`node_critic` may log `_critic_steps`; not in the typed `GraphState` ([`state.py`](../src/prompt_polisher/state.py)).
+`node_red_team_critic` may log `_critic_steps`; not in the typed `GraphState` ([`state.py`](../src/prompt_polisher/state.py)).

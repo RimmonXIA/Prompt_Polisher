@@ -16,10 +16,14 @@
 大多数 Prompt 失败的原因在于：缺乏结构、误触负向约束，或者透支了模型单次思考的逻辑极限。**Prompt Polisher** 将提示词工程视为对大模型注意力、算力和安全边界的**结构化干预**：
 
 - 🎯 **注意力管理 (Attention Management)**：通过**首尾强化**对抗 "Lost in the Middle" 效应，并引入**锚点角色 (Anchor Persona)** / 流形寻址以稳定输出风格与详略。
-- 🛡️ **内置安全闸门 (Built-in Safety)**：多层“威胁雷达”探测注入攻击与对齐风险。使用 **XML 沙盒隔离 (XML Sandboxing)** 确保指令隔离，并支持可选的 **PRM 式标量门控** 进行过程质量控制。
+- 🛡️ **内置安全闸门 (Built-in Safety)**：**启发式预扫描**与模型驱动的**威胁雷达**叠加，探测注入与对齐信号。使用 **XML 沙盒隔离 (XML Sandboxing)** 确保指令隔离，并支持可选的 **PRM 式标量门控**（启发式，非形式化安全保证）。
 - ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<thinking>` 标签与 ICL 少样本示范。利用**雷达驱动的正向化改写 (Positive Framing)** 中和意图解构中的指令失效。
 - 🎨 **风格镜像干预 (Style Mirroring Intervention)**：检测低熵输入 (Perspective Mimesis) 并通过**词量提升 (Vocabulary Elevation)** 与**结构启动 (Structural Priming)** 进行主动干预，确保目标模型镜像出专家级的认知标准。
-- 🤖 **多轨输出与 A2A 原生**：除 Prompt 外，同时产出 **LangGraph 蓝图** 与 **DSPy 代码草图**。作为全合规 **A2A 参与者**，支持 JSON-RPC 与 SSE 实时任务委托。
+- 🤖 **多轨输出与 A2A 原生**：除 Prompt 外，同时产出 **LangGraph 蓝图** 与 **DSPy 代码草图**。草图与仓库内声明式签名（[`DraftCompile` / `DraftCritic`](src/prompt_polisher/compiler_dspy.py)）对齐；完整 DSPy 优化循环不在本工具范围内。作为全合规 **A2A 参与者**，支持 JSON-RPC 与 SSE 实时任务委托。
+- 🔌 **多供应商编译栈**：图内 LLM 调用经 **LiteLLM**（[`llm.py`](src/prompt_polisher/llm.py)）统一路由，一套配置可对接 OpenAI、Anthropic、Gemini、DeepSeek 等众多后端。
+- 📐 **模式化节点 I/O**：雷达、路由等步骤要求输出 **与 Pydantic 模式一致的 JSON**（模式写入 system 提示，再校验与容错解析）。雷达在模型返回无效 JSON 时**安全降级**；这与你在自有栈里使用的 API 级结构化解码是互补关系，而非替代。
+
+编排器（本编译器）以**分析者**身份工作：**不扮演**最终将执行成稿的下游助手，以降低身份漂移与「编译器即聊天机器人」式混淆。角色与边界详见 [docs/THEORY.zh.md](docs/THEORY.zh.md)（权威）与 [docs/THEORY.en.md](docs/THEORY.en.md)（英文摘要）。
 
 ---
 
@@ -83,6 +87,11 @@ uv run prompt-polisher --envelope "你的原始需求"
 uv run prompt-polisher --serve --port 8000
 ```
 
+### 3. 示例报告与库内调用
+
+- **样例输出**：[examples/](examples/README.md) 涵盖正常完成、**威胁闸门中止**与**多节点路由**提示（`01_happy_path`、`02_aborted_gate`、`03_multi_node_hint`）。
+- **在 Python 中嵌入**：使用 [`run_compiler_async`](src/prompt_polisher/graph.py)，传入 `Settings` 与 [`LLMClient`](src/prompt_polisher/llm.py)；可选 `on_node_start` / `on_node_done` 在每个图节点前后回调（CLI 进度条依赖于此）。与代码一致的序列与状态流见 **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**（英文正文）。
+
 ---
 
 ## 🛠️ 开发者与自动化指南
@@ -112,13 +121,15 @@ uv run prompt-polisher --serve --port 8000
 
 | 架构节点 | 核心代码实现 |
 | --- | --- |
-| **Node 1: 雷达 (Radar)** | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) (`node_radar`) |
+| **Node 1: 雷达 (Radar)** | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) (`node_intent_sniffer`) |
 | **威胁闸门 (Threat Gate)** | [`src/prompt_polisher/gate.py`](src/prompt_polisher/gate.py) |
-| **Node 2: 路由 (Routing)** | `nodes.py` (`node_routing`) |
-| **Node 3: 编译 (Compile)** | `nodes.py` (`node_compile`) |
-| **Node 4: 审查 (Critic)** | `nodes.py` (`node_critic`) |
+| **Node 2: 路由 (Routing)** | `nodes.py` (`node_compute_aware_router`) |
+| **Node 3: 编译 (Compile)** | `nodes.py` (`node_structured_compiler`) |
+| **Node 4: 审查 (Critic)** | `nodes.py` (`node_red_team_critic`) |
 | **全局状态 (Global State)** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
 | **评测基线** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
+
+**CI 质量门槛**：[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 在 **Python 3.11 与 3.12** 上运行 **Ruff**、**Mypy** 与 **pytest**。
 
 ### CLI 调用链（Mermaid 参考）
 
@@ -149,9 +160,17 @@ uv run prompt-polisher-eval --output eval-report.json
 - `AUTHOR_TRUST_MODE`: 设置为 `true` 可针对可信作者禁用严格的安全闸门。
 - `MAX_CRITIC_ITERATIONS`: 控制审查反馈循环的最大深度（默认: 3）。
 - `CRITIC_USE_PRM`: 启用可选的基于标量的过程奖励门控（启发式）。
+- `PRM_MODEL`: 在开启 `CRITIC_USE_PRM` 时，可选覆盖内置 LLM PRM 所用模型（未设置时与主编译模型解析规则一致）。
+- `PRM_MIN_SCORE`: PRM 门控最低分数，取值 `[0, 1]`（默认 `0.45`）。
+- `EXTERNAL_PRM_ENDPOINT`: 可选的 **自备过程评分** HTTP 地址。客户端 `POST` JSON `{"draft": "...", "intent": "..."}`，响应需含数值 `score` 与可选 `note`；见 [`prm.py`](src/prompt_polisher/prm.py)。若配置，将**优先于**内置 LLM PRM 调用。
+- **Langfuse**（可选链路追踪）：设置 `LANGFUSE_TRACING=true`，并配置 `LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`（可选 `LANGFUSE_BASE_URL`）。安装依赖：`uv sync --extra langfuse`；连通性检查：`uv run prompt-polisher-langfuse-check`。
+
+### 范围与非承诺
+
+Prompt Polisher 是面向黑盒语言模型的**分阶段、可审计的编译型工作流**。它**不保证**下游任务必然成功、形式化安全认证，或在所有模型与部署上均为最优提示词。雷达、闸门与审查均为**启发式**；须与系统设计、监控与任务级评测配合使用。明确局限与**不宜单独依赖本工具**的场景见 **[docs/THEORY.zh.md](docs/THEORY.zh.md)**（权威）与 **[docs/THEORY.en.md](docs/THEORY.en.md)**（英文摘要）。
 
 > [!IMPORTANT]
-> **范围与局限**: Prompt Polisher **仅产出文本制品**。它不直接在工具内部执行约束解码 (logits masking) 或采样控制；这些应在您的下游解码器或 API 客户端中配置。
+> **实现层面范围**: Prompt Polisher **仅产出文本制品**。它不直接在工具内部执行约束解码 (logits masking) 或采样控制；这些应在您的下游解码器或 API 客户端中配置。
 
 ---
 
