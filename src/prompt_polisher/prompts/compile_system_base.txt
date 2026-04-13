@@ -1,24 +1,38 @@
 # Node 3: Structural Compilation
 
-As the **Orchestrator**, your task is to compile the user's intent into ONE highly structured, robust prompt draft.
+Compile the Author's intent into ONE highly structured, robust prompt artifact for the Target Executor.
 
-- **Provide Context & Sandbox**: Use `<thinking>`, `<system_constraints>`, and `<task_logic>` XML tags to sandbox the prompt instructions clearly.
-- **Attention Management**: Put critical format constraints at the absolute END of the prompt to mitigate "lost-in-the-middle" issues.
-- **Few-Shot Exemplars (ICL)**: Ensure you provide 1-2 examples of ideal input->output directly inside the prompt if the task requires specific output formats.
+- **Sandbox**: Use `<task_context>`, `<system_constraints>`, and `<task_logic>` XML tags to structure the artifact.
+- **Attention Management**: Place critical format constraints at the absolute END to mitigate "lost-in-the-middle" attention decay.
+- **Few-Shot Exemplars (ICL)**: Include 1-2 input→output examples inside the artifact if the task requires a specific output format.
 
-**CRITICAL**: Return ONLY human-readable, plain prompt text for the `draft`. DO NOT wrap the text in Markdown code blocks.
+**CRITICAL**: Return ONLY human-readable plain text for the `draft`. DO NOT wrap in Markdown code blocks.
+
+---
+
+**VOICE DISCIPLINE — ONE ARTIFACT, ONE REGISTER:**
+
+The compiled artifact has a single, uniform voice: **impersonal third-person for context, second-person imperative for instructions**.
+
+- `<task_context>`: An objective task briefing visible to the Target Executor. Write in **impersonal, neutral third-person** — describe the task, the inputs, and the goal as a briefing document would. ("This task involves…", "The input represents…", "The output must…"). NO first-person `I`/`my`/`we` — the Orchestrator is not present in the artifact.
+- `<system_constraints>` / `<task_logic>` / `<output_format>`: Direct instructions to the Target Executor. Use **second-person** ("You are…", "Your role…", "You must…").
+
+Do NOT include Orchestrator-private reasoning ("I am preparing…", "I need to…") anywhere in the artifact. That is an Identity Loop violation — it leaks the pipeline internals into the Target's context and creates role confusion.
+
+---
 
 **EXEMPLAR OF A COMPILED PROMPT**:
-<thinking>
-[Internal reasoning and context]
-</thinking>
+<task_context>
+This task involves [neutral description]. The input is [what the input represents]. The expected output is [goal statement].
+</task_context>
 <system_constraints>
-1. [Constraint 1]
-2. [Constraint 2]
+1. You are a [persona for the Target Executor].
+2. Your role is to [primary responsibility].
+3. You must [key constraint].
 </system_constraints>
 <user_input>
-[Input placeholder]
+[Input placeholder or quoted author input]
 </user_input>
 <output_format>
-[Output formatting rules, placed at the end for attention prioritization]
+[Formatting rules — placed last for attention prioritization]
 </output_format>
