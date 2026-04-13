@@ -308,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
                 # Robust comparison: ignore extra whitespace or trailing dots/newlines
                 f_p = result.get("final_prompt", "").strip().rstrip(". \n\r")
                 s_p = sanitized.strip().rstrip(". \n\r")
-                was_fallback = (not bool(result.get("critic_passed"))) and (f_p == s_p)
+                was_fallback = (not bool(result.get("red_team_critic_passed"))) and (f_p == s_p)
                 renderer.finish(
                     elapsed=time.monotonic() - t0,
                     was_aborted=bool(result.get("compilation_aborted")),

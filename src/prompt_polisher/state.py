@@ -123,15 +123,15 @@ class GraphState(TypedDict, total=False):
     # Node outputs – stored as plain dicts for backward-compat with existing
     # serialisation and prompt bundle code; Pydantic models are used at the
     # node boundary for validation, then converted via .model_dump().
-    radar_analysis: dict[str, object]
-    routing_decision: dict[str, object]
+    intent_sniffer_analysis: dict[str, object]
+    compute_aware_routing_decision: dict[str, object]
 
-    draft: str
+    compiler_draft: str
     # Reducer: critic feedback history accumulates across retries (list join)
-    critic_feedback: str
-    critic_passed: bool
-    critic_iterations: int
-    critic_halted_max: bool
+    red_team_critic_feedback: str
+    red_team_critic_passed: bool
+    red_team_critic_iterations: int
+    red_team_critic_halted_max: bool
     prm_score: float
 
     output_route: OutputRoute

@@ -59,7 +59,9 @@ def _parse_pydantic(model_cls: type[_M], text: str) -> _M | None:
         return None
 
 
-async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> dict[str, Any]:
+async def node_intent_sniffer(
+    state: GraphState, llm: LLMClient, settings: Settings
+) -> dict[str, Any]:
     raw = state["raw_prompt"]
     heuristic_injection = looks_like_injection(raw)
     bundle = prompt_bundle(settings)
@@ -71,7 +73,7 @@ async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> d
         text = await llm.achat(_system_user(system, user, RadarAnalysis))
         parsed: RadarAnalysis | None = _parse_pydantic(RadarAnalysis, text)
     except Exception as e:
-        logger.error("LLM failure in node_radar: %s", e)
+        logger.error("LLM failure in node_intent_sniffer: %s", e)
         parsed = None
         text = "llm_error"
 
@@ -88,11 +90,13 @@ async def node_radar(state: GraphState, llm: LLMClient, settings: Settings) -> d
         if "possible_prompt_injection" not in parsed.threats:
             parsed.threats.append("possible_prompt_injection")
 
-    return {"radar_analysis": parsed.model_dump()}
+    return {"intent_sniffer_analysis": parsed.model_dump()}
 
 
-async def node_routing(state: GraphState, llm: LLMClient, settings: Settings) -> dict[str, Any]:
-    radar = state.get("radar_analysis") or {}
+async def node_compute_aware_router(
+    state: GraphState, llm: LLMClient, settings: Settings
+) -> dict[str, Any]:
+    radar = state.get("intent_sniffer_analysis") or {}
     bundle = prompt_bundle(settings)
     system = bundle.routing_system(settings.author_trust_mode)
     radar_json = json.dumps(radar, ensure_ascii=False)
@@ -103,7 +107,7 @@ async def node_routing(state: GraphState, llm: LLMClient, settings: Settings) ->
         text = await llm.achat(_system_user(system, user, RoutingDecision))
         parsed: RoutingDecision | None = _parse_pydantic(RoutingDecision, text)
     except Exception as e:
-        logger.error("LLM failure in node_routing: %s", e)
+        logger.error("LLM failure in node_compute_aware_router: %s", e)
         parsed = None
         text = "llm_error"
 
@@ -115,19 +119,21 @@ async def node_routing(state: GraphState, llm: LLMClient, settings: Settings) ->
             audience_anchor="general public",
             rationale=preview_text(text, 400),
         )
-    return {"routing_decision": parsed.model_dump()}
+    return {"compute_aware_routing_decision": parsed.model_dump()}
 
 
-async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) -> dict[str, Any]:
-    radar = state.get("radar_analysis") or {}
-    routing = state.get("routing_decision") or {}
-    critic_fb = state.get("critic_feedback") or ""
+async def node_structured_compiler(
+    state: GraphState, llm: LLMClient, settings: Settings
+) -> dict[str, Any]:
+    radar = state.get("intent_sniffer_analysis") or {}
+    routing = state.get("compute_aware_routing_decision") or {}
+    critic_fb = state.get("red_team_critic_feedback") or ""
     bundle = prompt_bundle(settings)
     system = bundle.compile_system(settings.author_trust_mode)
     payload = {
         "radar": radar,
         "routing": routing,
-        "critic_feedback": critic_fb,
+        "red_team_critic_feedback": critic_fb,
         "raw_prompt": state["raw_prompt"],
     }
     user = f"Compile from:\n{json.dumps(payload, ensure_ascii=False)}"
@@ -137,8 +143,8 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
         text = await llm.achat(_system_user(system, user, CompileDraft))
         parsed: CompileDraft | None = _parse_pydantic(CompileDraft, text)
     except Exception as e:
-        logger.error("LLM failure in node_compile: %s", e)
-        return {"draft": state["raw_prompt"]}
+        logger.error("LLM failure in node_structured_compiler: %s", e)
+        return {"compiler_draft": state["raw_prompt"]}
     if parsed and parsed.draft.strip():
         draft = parsed.draft.strip()
     else:
@@ -154,7 +160,7 @@ async def node_compile(state: GraphState, llm: LLMClient, settings: Settings) ->
         if not draft:
             draft = state["raw_prompt"]
 
-    return {"draft": draft}
+    return {"compiler_draft": draft}
 
 
 def _rule_check_draft(draft: str) -> tuple[bool, str]:
@@ -166,16 +172,18 @@ def _rule_check_draft(draft: str) -> tuple[bool, str]:
     return True, ""
 
 
-async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> dict[str, Any]:
-    draft = state.get("draft") or ""
-    iterations = int(state.get("critic_iterations") or 0)
+async def node_red_team_critic(
+    state: GraphState, llm: LLMClient, settings: Settings
+) -> dict[str, Any]:
+    draft = state.get("compiler_draft") or ""
+    iterations = int(state.get("red_team_critic_iterations") or 0)
 
     ok, reason = _rule_check_draft(draft)
     if not ok:
         return {
-            "critic_passed": False,
-            "critic_feedback": f"rule_fail:{reason}",
-            "critic_iterations": iterations + 1,
+            "red_team_critic_passed": False,
+            "red_team_critic_feedback": f"rule_fail:{reason}",
+            "red_team_critic_iterations": iterations + 1,
         }
 
     prm_score_val: float | None = None
@@ -188,9 +196,9 @@ async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> 
                 if prm_note:
                     detail = f"{detail} ({prm_note})"
                 return {
-                    "critic_passed": False,
-                    "critic_feedback": detail,
-                    "critic_iterations": iterations + 1,
+                    "red_team_critic_passed": False,
+                    "red_team_critic_feedback": detail,
+                    "red_team_critic_iterations": iterations + 1,
                     "prm_score": score,
                 }
 
@@ -203,11 +211,11 @@ async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> 
         text = await llm.achat(_system_user(system, user, CriticFeedback))
         parsed: CriticFeedback | None = _parse_pydantic(CriticFeedback, text)
     except Exception as e:
-        logger.error("LLM failure in node_critic: %s", e)
+        logger.error("LLM failure in node_red_team_critic: %s", e)
         return {
-            "critic_passed": False,
-            "critic_feedback": "llm_connection_error_halting",
-            "critic_iterations": settings.max_critic_iterations,  # Force halt
+            "red_team_critic_passed": False,
+            "red_team_critic_feedback": "llm_connection_error_halting",
+            "red_team_critic_iterations": settings.max_critic_iterations,  # Force halt
         }
     if parsed is None:
         logger.warning(
@@ -223,9 +231,9 @@ async def node_critic(state: GraphState, llm: LLMClient, settings: Settings) -> 
         steps = parsed.verification_steps
 
     out: dict[str, Any] = {
-        "critic_passed": passed,
-        "critic_feedback": feedback,
-        "critic_iterations": iterations + 1,
+        "red_team_critic_passed": passed,
+        "red_team_critic_feedback": feedback,
+        "red_team_critic_iterations": iterations + 1,
     }
     if steps:
         out["_critic_steps"] = steps  # stored for observability; not in official state schema
@@ -243,26 +251,32 @@ def _pick_route(routing: dict[str, object]) -> OutputRoute:
     return "instance"
 
 
-async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> dict[str, Any]:
-    routing = state.get("routing_decision") or {}
+async def node_artifact_dispatcher(
+    state: GraphState, llm: LLMClient, settings: Settings
+) -> dict[str, Any]:
+    routing = state.get("compute_aware_routing_decision") or {}
     route = _pick_route(routing)
-    draft = state.get("draft") or ""
-    iterations = int(state.get("critic_iterations") or 0)
-    halted = (not bool(state.get("critic_passed"))) and iterations >= settings.max_critic_iterations
+    draft = state.get("compiler_draft") or ""
+    iterations = int(state.get("red_team_critic_iterations") or 0)
+    halted = (not bool(state.get("red_team_critic_passed"))) and (
+        iterations >= settings.max_critic_iterations
+    )
 
     bundle = prompt_bundle(settings)
     system = bundle.router_system(settings.author_trust_mode)
     user = json.dumps(
         {
             "output_route": route,
-            "draft": (
-                f"[GOLDEN DRAFT - PRIORITIZE] {draft}" if state.get("critic_passed") else draft
+            "compiler_draft": (
+                f"[GOLDEN DRAFT - PRIORITIZE] {draft}"
+                if state.get("red_team_critic_passed")
+                else draft
             ),
             "routing": routing,
-            "radar": state.get("radar_analysis") or {},
+            "radar": state.get("intent_sniffer_analysis") or {},
             "raw_prompt": state["raw_prompt"],
-            "critic_passed": state.get("critic_passed"),
-            "critic_halted_max": halted,
+            "red_team_critic_passed": state.get("red_team_critic_passed"),
+            "red_team_critic_halted_max": halted,
         },
         ensure_ascii=False,
     )
@@ -272,7 +286,7 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
         text = await llm.achat(_system_user(system, user, RouterDeliverable))
         parsed: RouterDeliverable | None = _parse_pydantic(RouterDeliverable, text)
     except Exception as e:
-        logger.error("LLM failure in node_router: %s", e)
+        logger.error("LLM failure in node_artifact_dispatcher: %s", e)
         parsed = None
     if not parsed:
         parsed = RouterDeliverable(
@@ -286,5 +300,5 @@ async def node_router(state: GraphState, llm: LLMClient, settings: Settings) -> 
         "final_prompt": parsed.final_prompt or draft,
         "workflow_blueprint": parsed.workflow_blueprint,
         "dspy_sketch": parsed.dspy_sketch,
-        "critic_halted_max": halted,
+        "red_team_critic_halted_max": halted,
     }

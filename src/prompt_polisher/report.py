@@ -18,7 +18,7 @@ class _ReportParts:
     blueprint: str
     dspy: str
     draft: str
-    critic_passed: object
+    red_team_critic_passed: object
     critic_iters: object
     critic_fb: str
     prm_score: object
@@ -32,17 +32,17 @@ def _parts_from_state(state: GraphState) -> _ReportParts:
     return _ReportParts(
         raw=str(state.get("raw_prompt") or "").strip(),
         final=str(state.get("final_prompt") or "").strip(),
-        radar=dict(state.get("radar_analysis") or {}),
-        routing=dict(state.get("routing_decision") or {}),
+        radar=dict(state.get("intent_sniffer_analysis") or {}),
+        routing=dict(state.get("compute_aware_routing_decision") or {}),
         route=state.get("output_route"),
         blueprint=str(state.get("workflow_blueprint") or "").strip(),
         dspy=str(state.get("dspy_sketch") or "").strip(),
-        draft=str(state.get("draft") or "").strip(),
-        critic_passed=state.get("critic_passed"),
-        critic_iters=state.get("critic_iterations"),
-        critic_fb=str(state.get("critic_feedback") or "").strip(),
+        draft=str(state.get("compiler_draft") or "").strip(),
+        red_team_critic_passed=state.get("red_team_critic_passed"),
+        critic_iters=state.get("red_team_critic_iterations"),
+        critic_fb=str(state.get("red_team_critic_feedback") or "").strip(),
         prm_score=state.get("prm_score"),
-        halted=state.get("critic_halted_max"),
+        halted=state.get("red_team_critic_halted_max"),
         compilation_aborted=bool(state.get("compilation_aborted")),
         abort_reason=str(state.get("abort_reason") or "").strip(),
         abort_detail=str(state.get("abort_detail") or "").strip(),
@@ -88,22 +88,22 @@ def compilation_report_dict(
             "model": settings.resolved_model(),
             "api_base_url": settings.resolved_base_url(),
             "llm_temperature": settings.llm_temperature,
-            "max_critic_iterations": settings.max_critic_iterations,
+            "max_red_team_critic_iterations": settings.max_critic_iterations,
         }
     out: dict[str, Any] = {
         "summary": None,
         "before_after": None,
         "settings": settings_dict,
-        "radar_analysis": p.radar,
-        "routing_decision": p.routing,
+        "intent_sniffer_analysis": p.radar,
+        "compute_aware_routing_decision": p.routing,
         "critic": {
-            "passed": p.critic_passed,
+            "passed": p.red_team_critic_passed,
             "iterations": p.critic_iters,
             "halted_at_max": p.halted,
             "feedback": p.critic_fb,
             "prm_score": p.prm_score,
         },
-        "draft": p.draft,
+        "compiler_draft": p.draft,
         "deliverables": {
             "output_route": p.route,
             "final_prompt": p.final,
@@ -117,9 +117,9 @@ def compilation_report_dict(
             "abort_reason": p.abort_reason or None,
             "abort_detail": p.abort_detail or None,
             "output_route": p.route,
-            "critic_passed": p.critic_passed,
-            "critic_iterations": p.critic_iters,
-            "critic_halted_max": p.halted,
+            "red_team_critic_passed": p.red_team_critic_passed,
+            "red_team_critic_iterations": p.critic_iters,
+            "red_team_critic_halted_max": p.halted,
             "alignment_risk": p.radar.get("alignment_risk"),
             "threats": p.radar.get("threats"),
             "complexity": p.routing.get("complexity"),
@@ -150,7 +150,7 @@ def render_compilation_report(
             if p.abort_detail:
                 lines.append(_bullet_line("Abort detail", p.abort_detail))
         lines.append(_bullet_line("Output route", p.route))
-        lines.append(_bullet_line("Critic passed", p.critic_passed))
+        lines.append(_bullet_line("Critic passed", p.red_team_critic_passed))
         lines.append(_bullet_line("Critic iterations", p.critic_iters))
         lines.append(_bullet_line("PRM score (if used)", p.prm_score))
         lines.append(_bullet_line("Stopped at max critic iterations", p.halted))
@@ -215,7 +215,7 @@ def render_compilation_report(
 
     lines.append("### Critic Loop Details")
     lines.append("")
-    lines.append(_bullet_line("Passed", p.critic_passed))
+    lines.append(_bullet_line("Passed", p.red_team_critic_passed))
     lines.append(_bullet_line("Iterations", p.critic_iters))
     lines.append(_bullet_line("PRM score", p.prm_score))
     lines.append(_bullet_line("Halted at cap", p.halted))
