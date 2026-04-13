@@ -9,7 +9,7 @@ from prompt_polisher.state import GraphState
 @dataclass(frozen=True)
 class StructuralResult:
     compilation_aborted: bool
-    critic_passed: bool | None
+    red_team_critic_passed: bool | None
     final_prompt_nonempty: bool
     draft_nonempty: bool
     structural_expect_ok: bool | None
@@ -19,10 +19,10 @@ class StructuralResult:
 def compute_structural(state: GraphState, item: EvalItem | None = None) -> StructuralResult:
     """Tier A metrics derived from graph state, optional item-level regression expectations."""
     aborted = bool(state.get("compilation_aborted"))
-    critic_raw = state.get("critic_passed")
+    critic_raw = state.get("red_team_critic_passed")
     critic = critic_raw if isinstance(critic_raw, bool) else None
     final = str(state.get("final_prompt") or "").strip()
-    draft = str(state.get("draft") or "").strip()
+    draft = str(state.get("compiler_draft") or "").strip()
     mismatches: list[str] = []
     expect_ok: bool | None = None
 
@@ -32,11 +32,13 @@ def compute_structural(state: GraphState, item: EvalItem | None = None) -> Struc
             mismatches.append(
                 f"compilation_aborted want {exp.compilation_aborted} got {aborted}",
             )
-        if exp.critic_passed is not None:
+        if exp.red_team_critic_passed is not None:
             if critic is None:
-                mismatches.append("critic_passed expected but value is missing")
-            elif exp.critic_passed != critic:
-                mismatches.append(f"critic_passed want {exp.critic_passed} got {critic}")
+                mismatches.append("red_team_critic_passed expected but value is missing")
+            elif exp.red_team_critic_passed != critic:
+                mismatches.append(
+                    f"red_team_critic_passed want {exp.red_team_critic_passed} got {critic}"
+                )
         if exp.final_prompt_nonempty is not None:
             got_nonempty = bool(final)
             if exp.final_prompt_nonempty != got_nonempty:
@@ -47,7 +49,7 @@ def compute_structural(state: GraphState, item: EvalItem | None = None) -> Struc
 
     return StructuralResult(
         compilation_aborted=aborted,
-        critic_passed=critic,
+        red_team_critic_passed=critic,
         final_prompt_nonempty=bool(final),
         draft_nonempty=bool(draft),
         structural_expect_ok=expect_ok,

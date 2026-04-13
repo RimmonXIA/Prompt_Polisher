@@ -4,9 +4,9 @@
     "abort_reason": null,
     "abort_detail": null,
     "output_route": "instance",
-    "critic_passed": true,
-    "critic_iterations": 1,
-    "critic_halted_max": false,
+    "red_team_critic_passed": true,
+    "red_team_critic_iterations": 1,
+    "red_team_critic_halted_max": false,
     "alignment_risk": "low",
     "threats": [],
     "complexity": "medium",
@@ -14,14 +14,14 @@
   },
   "before_after": null,
   "settings": null,
-  "radar_analysis": {
+  "intent_sniffer_analysis": {
     "task_type": "documentation",
     "alignment_risk": "low",
     "threats": [],
     "positive_reframe": "Produce a concise developer-facing release summary with explicit workflow bullets.",
     "notes": "Synthetic sample for schema illustration."
   },
-  "routing_decision": {
+  "compute_aware_routing_decision": {
     "complexity": "medium",
     "multi_node_recommended": false,
     "anchor_persona": "Senior technical writer",
@@ -34,7 +34,7 @@
     "feedback": "PASS — structure and safety notes present (sample).",
     "prm_score": null
   },
-  "draft": "<task>…redacted draft XML body…</task>",
+  "compiler_draft": "<task>…redacted draft XML body…</task>",
   "deliverables": {
     "output_route": "instance",
     "final_prompt": "You are assisting with release communications. [… redacted …]",

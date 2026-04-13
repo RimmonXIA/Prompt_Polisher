@@ -35,3 +35,18 @@ def configure_logging(settings: Settings) -> None:
             logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"),
         )
     root.addHandler(handler)
+
+    # Silence LiteLLM's verbose internal loggers.
+    # LiteLLM emits INFO-level "completion() model=…; provider=…" lines via its
+    # own named loggers AND prints "Provider List: …" via print() calls.
+    # Both must be suppressed so they don't pollute the rich UX on stderr.
+    for _noisy_logger in ("LiteLLM", "LiteLLM Router", "LiteLLM Proxy"):
+        logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
+
+    try:
+        import litellm
+
+        litellm.suppress_debug_info = True
+        litellm.set_verbose = False  # type: ignore[attr-defined]
+    except Exception:
+        pass

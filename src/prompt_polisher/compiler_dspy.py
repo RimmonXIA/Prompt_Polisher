@@ -10,7 +10,9 @@ class DraftCompile(dspy.Signature):  # type: ignore[misc]
     """Compiles a raw user prompt into a highly structured, hardened prompt draft."""
 
     raw_prompt = dspy.InputField(desc="The original string intent from the user")
-    radar_analysis = dspy.InputField(desc="JSON string containing threat and routing analysis")
+    intent_sniffer_analysis = dspy.InputField(
+        desc="JSON string containing threat and routing analysis"
+    )
 
     draft = dspy.OutputField(
         desc=(
@@ -40,8 +42,11 @@ class DSPyCompilerModule(dspy.Module):  # type: ignore[misc]
         self.compile = dspy.Predict(DraftCompile)
         self.critic = dspy.Predict(DraftCritic)
 
-    def forward(self, raw_prompt: str, radar_analysis: str) -> dspy.Prediction:
-        compile_out = self.compile(raw_prompt=raw_prompt, radar_analysis=radar_analysis)
+    def forward(self, raw_prompt: str, intent_sniffer_analysis: str) -> dspy.Prediction:
+        compile_out = self.compile(
+            raw_prompt=raw_prompt,
+            intent_sniffer_analysis=intent_sniffer_analysis,
+        )
         critic_out = self.critic(draft=compile_out.draft, original_intent=raw_prompt)
 
         return dspy.Prediction(

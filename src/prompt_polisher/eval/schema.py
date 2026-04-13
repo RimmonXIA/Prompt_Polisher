@@ -9,7 +9,7 @@ class StructuralExpect(BaseModel):
     """Optional expectations on graph output for Tier A regression checks."""
 
     compilation_aborted: bool | None = None
-    critic_passed: bool | None = None
+    red_team_critic_passed: bool | None = None
     final_prompt_nonempty: bool | None = None
 
 

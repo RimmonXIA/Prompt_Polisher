@@ -110,7 +110,7 @@ class SuiteReport:
 def _structural_dict(sr: StructuralResult) -> dict[str, Any]:
     return {
         "compilation_aborted": sr.compilation_aborted,
-        "critic_passed": sr.critic_passed,
+        "red_team_critic_passed": sr.red_team_critic_passed,
         "final_prompt_nonempty": sr.final_prompt_nonempty,
         "draft_nonempty": sr.draft_nonempty,
     }

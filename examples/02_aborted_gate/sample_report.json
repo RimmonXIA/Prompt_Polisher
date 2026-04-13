@@ -4,9 +4,9 @@
     "abort_reason": "heuristic_injection",
     "abort_detail": "Synthetic sample — gate triggered; no route/compile/critic ran.",
     "output_route": null,
-    "critic_passed": null,
-    "critic_iterations": null,
-    "critic_halted_max": null,
+    "red_team_critic_passed": null,
+    "red_team_critic_iterations": null,
+    "red_team_critic_halted_max": null,
     "alignment_risk": "high",
     "threats": ["prompt_injection_pattern"],
     "complexity": null,
@@ -14,13 +14,13 @@
   },
   "before_after": null,
   "settings": null,
-  "radar_analysis": {
+  "intent_sniffer_analysis": {
     "task_type": "unknown",
     "alignment_risk": "high",
     "threats": ["prompt_injection_pattern"],
     "notes": "Synthetic abort example."
   },
-  "routing_decision": {},
+  "compute_aware_routing_decision": {},
   "critic": {
     "passed": null,
     "iterations": null,
@@ -28,7 +28,7 @@
     "feedback": "",
     "prm_score": null
   },
-  "draft": "",
+  "compiler_draft": "",
   "deliverables": {
     "output_route": null,
     "final_prompt": "",

@@ -184,14 +184,14 @@ async def handle_get_task(body: dict[str, Any]) -> dict[str, Any]:
             }
         ]
         # Include audit trail if available
-        if "radar_analysis" in task["result"]:
+        if "intent_sniffer_analysis" in task["result"]:
             artifacts = cast(list[dict[str, Any]], res_task["artifacts"])
             artifacts.append(
                 {
                     "id": "audit-trail",
-                    "name": "Radar Audit",
+                    "name": "Intent Sniffer Audit",
                     "mimeType": "application/json",
-                    "parts": [{"json": task["result"]["radar_analysis"]}],
+                    "parts": [{"json": task["result"]["intent_sniffer_analysis"]}],
                 }
             )
 
@@ -238,10 +238,10 @@ async def stream_task_events(
     try:
         # Simulate incremental status: run_compiler_async is one call, not streamed.
         # Future: wire LangGraph stream events to SSE if needed.
-        yield _sse_update(task_id, rpc_id, "ST_RADAR", "Running Radar analysis...")
+        yield _sse_update(task_id, rpc_id, "ST_SNIFFER", "Running Intent Sniffer analysis...")
         await asyncio.sleep(0.5)
 
-        yield _sse_update(task_id, rpc_id, "ST_COMPILE", "Compiling prompt...")
+        yield _sse_update(task_id, rpc_id, "ST_COMPILE", "Compiling structured draft...")
         result = await run_compiler_async(user_input, settings, llm)
 
         aborted = bool(result.get("compilation_aborted"))

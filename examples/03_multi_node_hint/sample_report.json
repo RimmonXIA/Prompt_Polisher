@@ -4,9 +4,9 @@
     "abort_reason": null,
     "abort_detail": null,
     "output_route": "blueprint",
-    "critic_passed": true,
-    "critic_iterations": 2,
-    "critic_halted_max": false,
+    "red_team_critic_passed": true,
+    "red_team_critic_iterations": 2,
+    "red_team_critic_halted_max": false,
     "alignment_risk": "medium",
     "threats": [],
     "complexity": "high",
@@ -14,14 +14,14 @@
   },
   "before_after": null,
   "settings": null,
-  "radar_analysis": {
+  "intent_sniffer_analysis": {
     "task_type": "system_design",
     "alignment_risk": "medium",
     "threats": [],
     "positive_reframe": "Specify multi-agent orchestration with explicit trust boundaries and human-in-the-loop.",
     "notes": "Synthetic — routing favors blueprint / multi-node narrative."
   },
-  "routing_decision": {
+  "compute_aware_routing_decision": {
     "complexity": "high",
     "multi_node_recommended": true,
     "anchor_persona": "Principal ML engineer",
@@ -34,7 +34,7 @@
     "feedback": "PASS after adding explicit data-handling and approval steps (sample).",
     "prm_score": null
   },
-  "draft": "… redacted multi-section draft …",
+  "compiler_draft": "… redacted multi-section draft …",
   "deliverables": {
     "output_route": "blueprint",
     "final_prompt": "… condensed instance prompt if user still wants single-shot …",

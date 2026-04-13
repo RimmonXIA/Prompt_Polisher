@@ -29,7 +29,8 @@ def build_agent_card() -> dict[str, object]:
         "name": "Prompt Polisher",
         "description": (
             "Multi-node LangGraph prompt compiler. "
-            "Pipeline: radar → threat gate → routing → compile → critic. "
+            "Pipeline: intent sniffer → safety gate → compute-aware router → "
+            "structured compiler → red-team critic. "
             "Accepts raw user intent and produces structured, safe, "
             "compute-optimized LLM prompts, workflow blueprints, "
             "or DSPy-style sketches."

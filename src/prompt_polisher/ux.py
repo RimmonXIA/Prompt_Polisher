@@ -81,21 +81,21 @@ def splash_main_body(
 # ── Node → human-readable message map ─────────────────────────────────────────
 
 NODE_MESSAGES: dict[str, str] = {
-    "radar": "正在拆解分析指令并进行安全雷达扫描",
-    "routing": "正在评估语义复杂度并动态加载处理模型",
-    "compile": "正在注入高阶结构约束并执行深度编译",
-    "critic": "蓝军机制发起自我审查与对抗检验",
-    "router": "正在组装沙盒与最终工作流",
-    "early_abort": "安全闸门已触发，提前终止编译流程",
+    "intent_sniffer": "正在拆解分析指令并进行安全雷达扫描",
+    "compute_aware_router": "正在评估语义复杂度并动态加载处理模型",
+    "structured_compiler": "正在注入高阶结构约束并执行深度编译",
+    "red_team_critic": "蓝军机制发起自我审查与对抗检验",
+    "artifact_dispatcher": "正在组装沙盒与最终工作流",
+    "safety_abort_gate": "安全闸门已触发，提前终止编译流程",
 }
 
 _NODE_EMOJI: dict[str, str] = {
-    "radar": "🔍",
-    "routing": "🧭",
-    "compile": "🏗️",
-    "critic": "⚖️",
-    "router": "📦",
-    "early_abort": "🚨",
+    "intent_sniffer": "🔍",
+    "compute_aware_router": "🧭",
+    "structured_compiler": "🏗️",
+    "red_team_critic": "⚖️",
+    "artifact_dispatcher": "📦",
+    "safety_abort_gate": "🚨",
 }
 
 # ── Session-level renderer ─────────────────────────────────────────────────────
@@ -184,16 +184,16 @@ class SessionRenderer:
 
         base_msg = NODE_MESSAGES.get(node_name, node_name)
 
-        if node_name == "critic":
-            passed = bool(event.get("critic_passed")) if event else True
+        if node_name == "red_team_critic":
+            passed = bool(event.get("red_team_critic_passed")) if event else True
             if not passed:
-                retry_n = self._node_counts.get("critic", 0)
+                retry_n = self._node_counts.get("red_team_critic", 0)
                 self._console.print(
                     f"[yellow]⚠️  审查未通过，触发第 {retry_n} 次自我修复回炉[/yellow] "
                     f"[dim]({elapsed:.1f}s)[/dim]"
                 )
-                if event and "critic_feedback" in event:
-                    feedback = str(event["critic_feedback"]).strip().split("\n")[0]
+                if event and "red_team_critic_feedback" in event:
+                    feedback = str(event["red_team_critic_feedback"]).strip().split("\n")[0]
                     if not feedback:
                         feedback = "未提供具体驳回原因（自动回炉修复中）"
                     if len(feedback) > 60:
@@ -203,22 +203,25 @@ class SessionRenderer:
                     )
             else:
                 self._console.print(f"[green]✅[/green] {base_msg} [dim]({elapsed:.1f}s)[/dim]")
-        elif node_name == "early_abort":
+        elif node_name == "safety_abort_gate":
             self._console.print("[red]🚨 安全闸门触发 — 编译已中止[/red]")
         else:
             self._console.print(f"[green]✅[/green] {base_msg} [dim]({elapsed:.1f}s)[/dim]")
 
             if event:
-                if node_name == "radar" and "radar_analysis" in event:
-                    raw_analysis = event["radar_analysis"]
+                if node_name == "intent_sniffer" and "intent_sniffer_analysis" in event:
+                    raw_analysis = event["intent_sniffer_analysis"]
                     if isinstance(raw_analysis, dict):
                         summary = str(raw_analysis.get("summary", "")).strip().split("\n")[0]
                         if summary:
                             if len(summary) > 75:
                                 summary = summary[:72] + "..."
                             self._console.print(f"    [dim]└── 💡 识别痛点：{summary}[/dim]")
-                elif node_name == "routing" and "routing_decision" in event:
-                    raw_routing = event["routing_decision"]
+                elif (
+                    node_name == "compute_aware_router"
+                    and "compute_aware_routing_decision" in event
+                ):
+                    raw_routing = event["compute_aware_routing_decision"]
                     if isinstance(raw_routing, dict):
                         rationale = str(raw_routing.get("rationale", "")).strip().split("\n")[0]
                         if rationale:
@@ -243,7 +246,7 @@ class SessionRenderer:
         if was_aborted:
             self._console.print(f"\n[red]🚫 编译流程已中止 (历时 {elapsed:.1f}s)[/red]\n")
         else:
-            critic_iters = self._node_counts.get("critic", 0)
+            critic_iters = self._node_counts.get("red_team_critic", 0)
             correction_note = f"，历经 {critic_iters} 次蓝军自检" if critic_iters > 1 else ""
             fallback_note = " [dim](由于质量不佳已回退至原文本)[/dim]" if was_fallback else ""
             self._console.print(
