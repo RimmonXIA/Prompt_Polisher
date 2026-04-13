@@ -12,7 +12,7 @@ def _env_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.setenv("LLM_PROVIDER", "openai")
     monkeypatch.delenv("ABORT_ON_HEURISTIC_INJECTION", raising=False)
-    monkeypatch.delenv("ABORT_ON_RADAR_HIGH", raising=False)
+    monkeypatch.delenv("ABORT_ON_SNIFFER_HIGH", raising=False)
     monkeypatch.delenv("AUTHOR_TRUST_MODE", raising=False)
     get_settings.cache_clear()
 
@@ -48,7 +48,7 @@ def test_should_abort_when_heuristic_disabled(
     assert abort is False
 
 
-def test_should_abort_on_radar_possible_prompt_injection(
+def test_should_abort_on_sniffer_possible_prompt_injection(
     monkeypatch: pytest.MonkeyPatch,
     _env_openai: None,
 ) -> None:
@@ -64,15 +64,15 @@ def test_should_abort_on_radar_possible_prompt_injection(
     }
     abort, reason = should_abort_after_intent_sniffer(state, s)
     assert abort is True
-    assert reason == "radar_possible_prompt_injection"
+    assert reason == "sniffer_possible_prompt_injection"
 
 
-def test_should_abort_on_radar_high_when_env_strict(
+def test_should_abort_on_sniffer_high_when_env_strict(
     monkeypatch: pytest.MonkeyPatch,
     _env_openai: None,
 ) -> None:
     monkeypatch.setenv("ABORT_ON_HEURISTIC_INJECTION", "false")
-    monkeypatch.setenv("ABORT_ON_RADAR_HIGH", "true")
+    monkeypatch.setenv("ABORT_ON_SNIFFER_HIGH", "true")
     get_settings.cache_clear()
     s = get_settings()
     state: GraphState = {
@@ -81,7 +81,7 @@ def test_should_abort_on_radar_high_when_env_strict(
     }
     abort, reason = should_abort_after_intent_sniffer(state, s)
     assert abort is True
-    assert reason == "radar_alignment_risk_high"
+    assert reason == "sniffer_alignment_risk_high"
 
 
 def test_should_not_abort_high_in_author_mode_without_strict(
@@ -89,7 +89,7 @@ def test_should_not_abort_high_in_author_mode_without_strict(
     _env_openai: None,
 ) -> None:
     monkeypatch.setenv("ABORT_ON_HEURISTIC_INJECTION", "false")
-    monkeypatch.setenv("ABORT_ON_RADAR_HIGH", "false")
+    monkeypatch.setenv("ABORT_ON_SNIFFER_HIGH", "false")
     monkeypatch.setenv("AUTHOR_TRUST_MODE", "true")
     get_settings.cache_clear()
     s = get_settings()
@@ -115,14 +115,14 @@ def test_should_abort_high_with_threats_when_untrusted(
     }
     abort, reason = should_abort_after_intent_sniffer(state, s)
     assert abort is True
-    assert reason == "radar_high_with_threats_untrusted"
+    assert reason == "sniffer_high_with_threats_untrusted"
 
 
 def test_node_safety_abort_gate_sets_flags(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.setenv("LLM_PROVIDER", "openai")
     monkeypatch.setenv("ABORT_ON_HEURISTIC_INJECTION", "true")
-    monkeypatch.delenv("ABORT_ON_RADAR_HIGH", raising=False)
+    monkeypatch.delenv("ABORT_ON_SNIFFER_HIGH", raising=False)
     get_settings.cache_clear()
     settings = get_settings()
     state: GraphState = {
@@ -140,8 +140,8 @@ def test_node_safety_abort_gate_sets_flags(monkeypatch: pytest.MonkeyPatch) -> N
 def test_abort_defaults_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.delenv("ABORT_ON_HEURISTIC_INJECTION", raising=False)
-    monkeypatch.delenv("ABORT_ON_RADAR_HIGH", raising=False)
+    monkeypatch.delenv("ABORT_ON_SNIFFER_HIGH", raising=False)
     get_settings.cache_clear()
     s = get_settings()
     assert s.abort_on_heuristic_injection is True
-    assert s.abort_on_radar_high is False
+    assert s.abort_on_sniffer_high is False

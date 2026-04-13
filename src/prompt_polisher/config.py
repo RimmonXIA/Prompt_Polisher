@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     prompts_dir: Path | None = Field(default=None, alias="PROMPTS_DIR")
 
     abort_on_heuristic_injection: bool = Field(default=True, alias="ABORT_ON_HEURISTIC_INJECTION")
-    abort_on_radar_high: bool = Field(default=False, alias="ABORT_ON_RADAR_HIGH")
+    abort_on_sniffer_high: bool = Field(default=False, alias="ABORT_ON_SNIFFER_HIGH")
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     log_json: bool = Field(default=False, alias="LOG_JSON")
@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     @field_validator(
         "author_trust_mode",
         "abort_on_heuristic_injection",
-        "abort_on_radar_high",
+        "abort_on_sniffer_high",
         "critic_use_prm",
         mode="before",
     )
