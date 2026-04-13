@@ -33,7 +33,7 @@ def test_render_compilation_report_includes_sections() -> None:
     md = render_compilation_report(state, include_summary=True, include_before_after=False)
     assert "# Prompt Polisher Compilation Report" in md
     assert "## Executive Summary" in md
-    assert "### Radar Analysis" in md
+    assert "### Intent Sniffer Analysis" in md
     assert "### Routing and Anchoring" in md
     assert "### Critic Loop Details" in md
     assert "## 📦 Deliverables" in md

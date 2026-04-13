@@ -21,7 +21,7 @@ def preview_text(text: str, max_len: int = 200) -> str:
 def sanitize_user_input(text: str) -> str:
     """Basic XML tag escaping for common sandbox boundaries to prevent escape."""
     escaped = text
-    for tag in ("user_context", "system", "thinking", "draft", "task_context"):
+    for tag in ("user_context", "system", "task_context", "draft"):
         escaped = re.sub(rf"<{tag}[^>]*>", rf"&lt;{tag}&gt;", escaped, flags=re.IGNORECASE)
         escaped = re.sub(rf"</{tag}\s*>", rf"&lt;/{tag}&gt;", escaped, flags=re.IGNORECASE)
     return escaped

@@ -1,5 +1,5 @@
-Radar Analysis JSON:
-$radar_json
+Intent Sniffer Analysis JSON:
+$sniffer_json
 
 Original **Author** prompt:
 $original

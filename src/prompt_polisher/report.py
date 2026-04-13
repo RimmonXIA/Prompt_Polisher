@@ -12,7 +12,7 @@ from prompt_polisher.state import GraphState
 class _ReportParts:
     raw: str
     final: str
-    radar: dict[str, object]
+    sniffer: dict[str, object]
     routing: dict[str, object]
     route: object
     blueprint: str
@@ -32,7 +32,7 @@ def _parts_from_state(state: GraphState) -> _ReportParts:
     return _ReportParts(
         raw=str(state.get("raw_prompt") or "").strip(),
         final=str(state.get("final_prompt") or "").strip(),
-        radar=dict(state.get("intent_sniffer_analysis") or {}),
+        sniffer=dict(state.get("intent_sniffer_analysis") or {}),
         routing=dict(state.get("compute_aware_routing_decision") or {}),
         route=state.get("output_route"),
         blueprint=str(state.get("workflow_blueprint") or "").strip(),
@@ -94,7 +94,7 @@ def compilation_report_dict(
         "summary": None,
         "before_after": None,
         "settings": settings_dict,
-        "intent_sniffer_analysis": p.radar,
+        "intent_sniffer_analysis": p.sniffer,
         "compute_aware_routing_decision": p.routing,
         "critic": {
             "passed": p.red_team_critic_passed,
@@ -120,8 +120,8 @@ def compilation_report_dict(
             "red_team_critic_passed": p.red_team_critic_passed,
             "red_team_critic_iterations": p.critic_iters,
             "red_team_critic_halted_max": p.halted,
-            "alignment_risk": p.radar.get("alignment_risk"),
-            "threats": p.radar.get("threats"),
+            "alignment_risk": p.sniffer.get("alignment_risk"),
+            "threats": p.sniffer.get("threats"),
             "complexity": p.routing.get("complexity"),
             "multi_node_recommended": p.routing.get("multi_node_recommended"),
         }
@@ -161,17 +161,17 @@ def render_compilation_report(
     lines.append("## 📦 Deliverables")
     lines.append("> *Ready-to-use artifacts generated from the pipeline.*")
     lines.append("")
-    
+
     lines.append("### ✨ Final Compiled Prompt")
     lines.append("👇 *Copy the code block below directly into your target LLM* 👇")
     lines.append("")
     lines.append(_fence_block(p.final if p.final else "(empty)"))
-    
+
     if p.blueprint:
         lines.append("### 🗺️ Workflow Blueprint")
         lines.append("")
         lines.append(_fence_block(p.blueprint))
-        
+
     if p.dspy:
         lines.append("### 🪄 DSPy Sketch")
         lines.append("")
@@ -182,7 +182,7 @@ def render_compilation_report(
     lines.append("")
     lines.append("## 🔍 Compilation Diagnostics")
     lines.append("<details>")
-    summary_text = "Click to expand internal graph metadata (Radar, Routing, Critic loops)"
+    summary_text = "Click to expand internal graph metadata (Sniffer, Routing, Critic loops)"
     lines.append(f"<summary>{summary_text}</summary>")
     lines.append("")
 
@@ -205,9 +205,9 @@ def render_compilation_report(
             lines.append(_bullet_line("PRM min score", settings.prm_min_score))
         lines.append("")
 
-    lines.append("### Radar Analysis")
+    lines.append("### Intent Sniffer Analysis")
     lines.append("")
-    lines.append(_format_dict_section("Structured fields", p.radar))
+    lines.append(_format_dict_section("Structured fields", p.sniffer))
 
     lines.append("### Routing and Anchoring")
     lines.append("")

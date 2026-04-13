@@ -14,7 +14,7 @@ from prompt_polisher.prompts_bundle import clear_prompt_bundle_cache, prompt_bun
 
 def test_package_prompt_txt_readable() -> None:
     root = resources.files("prompt_polisher") / "prompts"
-    base = root.joinpath("radar_system_base.txt").read_text(encoding="utf-8")
+    base = root.joinpath("intent_sniffer_system_base.txt").read_text(encoding="utf-8")
     assert "Node 1" in base
     assert root.joinpath("gate_abort_workflow_blueprint.txt").is_file()
 
@@ -56,8 +56,8 @@ def test_prompts_dir_overrides_single_file(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    marker = "PP_OVERRIDE_RADAR_TRUSTED_XQ9Z"
-    (tmp_path / "radar_system_trusted.txt").write_text(marker, encoding="utf-8")
+    marker = "PP_OVERRIDE_SNIFFER_TRUSTED_XQ9Z"
+    (tmp_path / "intent_sniffer_system_trusted.txt").write_text(marker, encoding="utf-8")
 
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.setenv("PROMPTS_DIR", str(tmp_path))
@@ -67,8 +67,8 @@ def test_prompts_dir_overrides_single_file(
     settings = get_settings()
     assert settings.prompts_dir is not None
 
-    radar_json = '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"s"}'
-    llm = _CaptureFakeLLM([radar_json])
+    sniffer_json = '{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"s"}'
+    llm = _CaptureFakeLLM([sniffer_json])
     asyncio.run(node_intent_sniffer({"raw_prompt": "hello"}, llm, settings))  # type: ignore[arg-type]
     system = llm.calls[0][0]["content"]
     assert marker in system

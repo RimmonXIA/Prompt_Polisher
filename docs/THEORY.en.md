@@ -4,7 +4,7 @@
 
 ## What this project claims
 
-Prompt engineering is treated as **structured intervention** on (at least) **attention**, **test-time compute** (tokens, CoT-style scaffolding), **output distributions / decoding**, and **safety boundaries** — not as a one-shot paraphrase. The codebase implements a **multi-stage LangGraph workflow**: Intent Sniffer (Radar) → optional **Safety Gate** → Compute-Aware Router → Structured Compiler → Red-Team Critic (with optional **PRM-style** scalar gating) → Artifact Dispatcher.
+Prompt engineering is treated as **structured intervention** on (at least) **attention**, **test-time compute** (tokens, CoT-style scaffolding), **output distributions / decoding**, and **safety boundaries** — not as a one-shot paraphrase. The codebase implements a **multi-stage LangGraph workflow**: Intent Sniffer (Intent Sniffer) → optional **Safety Gate** → Compute-Aware Router → Structured Compiler → Red-Team Critic (with optional **PRM-style** scalar gating) → Artifact Dispatcher.
 
 **Non-claims:** The tool does **not** guarantee task success, formal safety, global optimality, or portability across every model and API. See [Limits and non-claims](#limits-and-non-claims) and [When not to use this tool](#when-not-to-use-this-tool).
 
@@ -19,27 +19,27 @@ To prevent role confusion and "Identity Loops", the system strictly enforces the
 
 ### Persona Discipline
 To eliminate the "Identity Loop" vulnerability, the system enforces a strict pronoun register within the compile draft:
-- **Task Context**: Replacing the legacy `<thinking>` block. Must use **impersonal third-person** analysis (e.g., "This task requires...") to prevent the Orchestrator's internal voice from leaking into the Target's context.
+- **Task Context**: Replacing the legacy `<task context>` block. Must use **impersonal third-person** analysis (e.g., "This task requires...") to prevent the Orchestrator's internal voice from leaking into the Target's context.
 - **Direct Instructions**: Second-person imperative for the Target (e.g., "You are...", "You must...").
 - **Orchestrator Invisibility**: The pipeline's private reasoning is strictly forbidden in the final artifact; any leakage of the Orchestrator persona (e.g., "As the compiler, I...") will be rejected by the Critic.
 
 ## Pipeline (aligned with code)
 
-1. **Intent Sniffer (Radar)** — Intent decomposition, heuristic alignment/injection signals, JSON-shaped analysis merged into graph state.
+1. **Intent Sniffer (Intent Sniffer)** — Intent decomposition, heuristic alignment/injection signals, JSON-shaped analysis merged into graph state.
 2. **Safety Gate** — Config-driven early abort after Sniffer; skips subsequent nodes when triggered.
 3. **Compute-Aware Router** — Complexity and multi-node recommendations; persona / style anchoring.
 4. **Structured Compiler** — Structured assembly into a `compiler_draft`: XML sandboxing, first/last emphasis, and the **<task_context>** block which provides impersonal briefing for the Target.
 5. **Red-Team Critic** — Persona and rule checks; FAIL loops back to Compile up to `MAX_CRITIC_ITERATIONS`.
 6. **Artifact Dispatcher** — Final delivery routing for text, blueprints, and DSPy sketches.
 
-**Radar JSON field hints** (keys are **model-dependent**; common examples—see [README.md](../README.md) implementation table):
+**Intent Sniffer JSON field hints** (keys are **model-dependent**; common examples—see [README.md](../README.md) implementation table):
 
 | Field (often present) | Short meaning |
 | --- | --- |
 | `negations_flipped` | Restatement of user intent with negations / scope clarified for the model (internal phrasing aid). |
 | `threats` | List of heuristic threat tags from the model (e.g. injection signals); gate may use these. |
 | `alignment_risk` | Coarse label such as `low` / `medium` / `high`; feeds gate policy. |
-| `summary` | Natural-language radar summary; may be appended to gate `abort_detail`. |
+| `summary` | Natural-language intent sniffer summary; may be appended to gate `abort_detail`. |
 
 The CLI emits **text artifacts only**. **Temperature, top-p, logits masks, constrained decoding** belong to **your downstream decoder** (see implementation scope).
 

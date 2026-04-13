@@ -132,7 +132,7 @@ def test_node_safety_abort_gate_sets_flags(monkeypatch: pytest.MonkeyPatch) -> N
     out = node_safety_abort_gate(state, settings)
     assert out["compilation_aborted"] is True
     assert out["abort_reason"] == "heuristic_prompt_injection"
-    assert "threat gate" in out["final_prompt"].lower()
+    assert "safety gate" in out["final_prompt"].lower()
     assert out["output_route"] == "instance"
     assert int(out["red_team_critic_iterations"] or 0) == 0
 

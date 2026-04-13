@@ -28,9 +28,9 @@ class PromptBundle:
     """Loads `.txt` prompts from package data, with optional directory override per file."""
 
     __slots__ = (
-        "_radar_base",
-        "_radar_trusted",
-        "_radar_untrusted",
+        "_sniffer_base",
+        "_sniffer_trusted",
+        "_sniffer_untrusted",
         "_routing_base",
         "_routing_trusted",
         "_routing_untrusted",
@@ -43,7 +43,7 @@ class PromptBundle:
         "_router_base",
         "_router_trusted",
         "_router_untrusted",
-        "_radar_user",
+        "_sniffer_user",
         "_routing_user",
         "_critic_user",
         "_gate_abort_user",
@@ -56,9 +56,9 @@ class PromptBundle:
         def load(name: str) -> str:
             return _load_text(name, override_dir)
 
-        self._radar_base = load("radar_system_base.txt")
-        self._radar_trusted = load("radar_system_trusted.txt")
-        self._radar_untrusted = load("radar_system_untrusted.txt")
+        self._sniffer_base = load("intent_sniffer_system_base.txt")
+        self._sniffer_trusted = load("intent_sniffer_system_trusted.txt")
+        self._sniffer_untrusted = load("intent_sniffer_system_untrusted.txt")
         self._routing_base = load("routing_system_base.txt")
         self._routing_trusted = load("routing_system_trusted.txt")
         self._routing_untrusted = load("routing_system_untrusted.txt")
@@ -71,7 +71,7 @@ class PromptBundle:
         self._router_base = load("router_system_base.txt")
         self._router_trusted = load("router_system_trusted.txt")
         self._router_untrusted = load("router_system_untrusted.txt")
-        self._radar_user = Template(load("radar_user.txt"))
+        self._sniffer_user = Template(load("intent_sniffer_user.txt"))
         self._routing_user = Template(load("routing_user.txt"))
         self._critic_user = Template(load("critic_user.txt"))
         self._gate_abort_user = Template(load("gate_abort_user_message.txt"))
@@ -79,9 +79,9 @@ class PromptBundle:
         self._router_fallback_wf = Template(load("router_fallback_workflow.txt"))
         self._router_fallback_dspy = load("router_fallback_dspy.txt")
 
-    def radar_system(self, author_trust_mode: bool) -> str:
-        trust = self._radar_trusted if author_trust_mode else self._radar_untrusted
-        return self._radar_base + trust
+    def sniffer_system(self, author_trust_mode: bool) -> str:
+        trust = self._sniffer_trusted if author_trust_mode else self._sniffer_untrusted
+        return self._sniffer_base + trust
 
     def routing_system(self, author_trust_mode: bool) -> str:
         trust = self._routing_trusted if author_trust_mode else self._routing_untrusted
@@ -99,11 +99,11 @@ class PromptBundle:
         trust = self._router_trusted if author_trust_mode else self._router_untrusted
         return self._router_base + trust
 
-    def radar_user(self, raw: str, heuristic_injection: bool) -> str:
-        return self._radar_user.substitute(raw=raw, heuristic_injection=heuristic_injection)
+    def sniffer_user(self, raw: str, heuristic_injection: bool) -> str:
+        return self._sniffer_user.substitute(raw=raw, heuristic_injection=heuristic_injection)
 
-    def routing_user(self, radar_json: str, original: str) -> str:
-        return self._routing_user.substitute(radar_json=radar_json, original=original)
+    def routing_user(self, sniffer_json: str, original: str) -> str:
+        return self._routing_user.substitute(sniffer_json=sniffer_json, original=original)
 
     def critic_user(self, draft: str, original_intent: str) -> str:
         return self._critic_user.substitute(draft=draft, original_intent=original_intent)

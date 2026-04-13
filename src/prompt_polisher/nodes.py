@@ -15,9 +15,9 @@ from prompt_polisher.state import (
     CriticFeedback,
     GraphState,
     OutputRoute,
-    RadarAnalysis,
     RouterDeliverable,
     RoutingDecision,
+    SnifferAnalysis,
 )
 from prompt_polisher.text import looks_like_injection, preview_text, strip_code_fence
 
@@ -65,20 +65,20 @@ async def node_intent_sniffer(
     raw = state["raw_prompt"]
     heuristic_injection = looks_like_injection(raw)
     bundle = prompt_bundle(settings)
-    system = bundle.radar_system(settings.author_trust_mode)
-    user = bundle.radar_user(raw, heuristic_injection)
+    system = bundle.sniffer_system(settings.author_trust_mode)
+    user = bundle.sniffer_user(raw, heuristic_injection)
     if settings.log_prompt_previews:
-        logger.info("radar input preview: %s", preview_text(user))
+        logger.info("sniffer input preview: %s", preview_text(user))
     try:
-        text = await llm.achat(_system_user(system, user, RadarAnalysis))
-        parsed: RadarAnalysis | None = _parse_pydantic(RadarAnalysis, text)
+        text = await llm.achat(_system_user(system, user, SnifferAnalysis))
+        parsed: SnifferAnalysis | None = _parse_pydantic(SnifferAnalysis, text)
     except Exception as e:
         logger.error("LLM failure in node_intent_sniffer: %s", e)
         parsed = None
         text = "llm_error"
 
     if parsed is None:
-        parsed = RadarAnalysis(
+        parsed = SnifferAnalysis(
             negations_flipped=raw,
             threats=["json_parse_error"],
             alignment_risk="medium",
@@ -96,11 +96,11 @@ async def node_intent_sniffer(
 async def node_compute_aware_router(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
-    radar = state.get("intent_sniffer_analysis") or {}
+    sniffer = state.get("intent_sniffer_analysis") or {}
     bundle = prompt_bundle(settings)
     system = bundle.routing_system(settings.author_trust_mode)
-    radar_json = json.dumps(radar, ensure_ascii=False)
-    user = bundle.routing_user(radar_json, state["raw_prompt"])
+    sniffer_json = json.dumps(sniffer, ensure_ascii=False)
+    user = bundle.routing_user(sniffer_json, state["raw_prompt"])
     if settings.log_prompt_previews:
         logger.info("routing input preview: %s", preview_text(user))
     try:
@@ -125,13 +125,13 @@ async def node_compute_aware_router(
 async def node_structured_compiler(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
-    radar = state.get("intent_sniffer_analysis") or {}
+    sniffer = state.get("intent_sniffer_analysis") or {}
     routing = state.get("compute_aware_routing_decision") or {}
     critic_fb = state.get("red_team_critic_feedback") or ""
     bundle = prompt_bundle(settings)
     system = bundle.compile_system(settings.author_trust_mode)
     payload = {
-        "radar": radar,
+        "sniffer": sniffer,
         "routing": routing,
         "red_team_critic_feedback": critic_fb,
         "raw_prompt": state["raw_prompt"],
@@ -273,7 +273,7 @@ async def node_artifact_dispatcher(
                 else draft
             ),
             "routing": routing,
-            "radar": state.get("intent_sniffer_analysis") or {},
+            "sniffer": state.get("intent_sniffer_analysis") or {},
             "raw_prompt": state["raw_prompt"],
             "red_team_critic_passed": state.get("red_team_critic_passed"),
             "red_team_critic_halted_max": halted,

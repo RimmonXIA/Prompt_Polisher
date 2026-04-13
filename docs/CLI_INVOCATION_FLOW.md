@@ -93,7 +93,7 @@ flowchart TB
     PB --> nDispatcher[artifact_dispatcher]
 
     nSniffer --> sR[system_base_plus_trust_slice]
-    nSniffer --> uR[radar_user_Template]
+    nSniffer --> uR[intent_sniffer_user_Template]
     nRouter --> sRt[system_base_plus_trust_slice]
     nRouter --> uRt[routing_user_Template]
     nCompiler --> sC[system_base_plus_trust_slice]
@@ -114,7 +114,7 @@ flowchart TB
 
 | Step | System | User | Extras |
 | --- | --- | --- | --- |
-| `intent_sniffer` | `radar_system_*` | `radar_user.txt` | — |
+| `intent_sniffer` | `intent_sniffer_system_*` | `intent_sniffer_user.txt` | — |
 | `compute_aware_router` | `routing_system_*` | `routing_user.txt` | — |
 | `structured_compiler` | `compile_system_*` | JSON in [`nodes.py`](../src/prompt_polisher/nodes.py) | — |
 | `red_team_critic` | `critic_system_*` | `critic_user.txt` | PRM optional |

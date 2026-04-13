@@ -119,7 +119,7 @@ def test_run_compiler_aborts_after_radar_on_heuristic(monkeypatch: pytest.Monkey
     assert out.get("compilation_aborted") is True
     assert out.get("abort_reason") == "heuristic_prompt_injection"
     assert llm.chat_calls == 1
-    assert "threat gate" in str(out.get("final_prompt") or "").lower()
+    assert "safety gate" in str(out.get("final_prompt") or "").lower()
 
 
 def test_critic_loop_respects_max_iterations(monkeypatch: pytest.MonkeyPatch) -> None:

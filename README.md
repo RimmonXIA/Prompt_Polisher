@@ -16,12 +16,12 @@ A **multi-node LangGraph compiler** that turns rough intent into structured, saf
 Most prompts fail because they lack structure, trigger negative constraints, or exhaust the model's single-pass reasoning limit. **Prompt Polisher** treats prompt engineering as a **structured intervention** on attention, compute, and safety:
 
 - 🎯 **Attention Management**: Combats "Lost in the Middle" by reinforcing instructions at **Head/Tail** positions and applying **Anchor Persona** (manifold addressing) to stabilize style and detail.
-- 🛡️ **Built-in Safety**: A **heuristic pre-scan** augments a model-based **Intent Sniffer (Radar)** for injections and alignment signals. Uses **XML Sandboxing** for isolation and optional **PRM-style scalar gating** for process-level quality control (heuristics, not a formal guarantee).
-- ⚙️ **Compute-Optimized**: Injects `<task_context>` blocks and ICL few-shots to trade sequence length for reasoning quality. Uses **Positive Framing** (Radar-driven negation flipping) to neutralize instruction failure.
+- 🛡️ **Built-in Safety**: A **heuristic pre-scan** augments a model-based **Intent Sniffer (Intent Sniffer)** for injections and alignment signals. Uses **XML Sandboxing** for isolation and optional **PRM-style scalar gating** for process-level quality control (heuristics, not a formal guarantee).
+- ⚙️ **Compute-Optimized**: Injects `<task_context>` blocks and ICL few-shots to trade sequence length for reasoning quality. Uses **Positive Framing** (Intent Sniffer-driven negation flipping) to neutralize instruction failure.
 - 🎨 **Style Mirroring Intervention**: Detects low-entropy inputs (Perspective Mimesis) and actively intervenes via **Vocabulary Elevation** and **Structural Priming** to ensure the target model mirrors expert-level cognitive standards.
 - 🤖 **Multi-track & A2A Native**: Emits prompts, **LangGraph blueprints**, and **DSPy sketches** for automation. The sketches align with in-repo declarative signatures ([`DraftCompile` / `DraftCritic`](src/prompt_polisher/compiler_dspy.py)); full DSPy optimization loops are out of scope. Designed as a tool protocol (JSON envelope) and a spec-compliant **A2A Participant** with JSON-RPC and SSE support.
 - 🔌 **Provider-agnostic compilation**: Internal graph calls go through **LiteLLM** ([`llm.py`](src/prompt_polisher/llm.py))—one configuration surface for OpenAI, Anthropic, Gemini, DeepSeek, and many other backends.
-- 📐 **Schema-guided node I/O**: Radar, routing, and related steps request **JSON shaped by Pydantic schemas** (schema text in the prompt, then validation and tolerant parsing). Radar **falls back safely** when the model returns invalid JSON; this complements—but does not replace—API-level structured decoding in your own stack.
+- 📐 **Schema-guided node I/O**: Intent Sniffer, routing, and related steps request **JSON shaped by Pydantic schemas** (schema text in the prompt, then validation and tolerant parsing). Intent Sniffer **falls back safely** when the model returns invalid JSON; this complements—but does not replace—API-level structured decoding in your own stack.
 
 ---
 
@@ -122,14 +122,14 @@ For scripts and coding agents (Cursor, Windsurf, custom workers), treat the CLI 
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Success: Compilation finished without being aborted by the threat gate. |
-| `2` | Aborted: Run finished but compilation was stopped by the threat gate. |
+| `0` | Success: Compilation finished without being aborted by the safety gate. |
+| `2` | Aborted: Run finished but compilation was stopped by the safety gate. |
 | `1` | Error: Misconfiguration, I/O failure, or invalid CLI usage. |
 
 #### Envelope Shape (`--envelope`)
 
 The standard JSON envelope includes:
-- `compiled`: `true` if and only if the threat gate did not abort.
+- `compiled`: `true` if and only if the safety gate did not abort.
 - `version`: Currently `1`.
 - `report`: The full compilation report (**intent_sniffer**, **compute_aware_router**, **red_team_critic**, deliverables).
 - `abort_reason`: `null` on success, or an object with `code`, `message`, and `detail`.

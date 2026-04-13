@@ -4,7 +4,7 @@
 
 **English bridge（非权威摘要）：** 面向国际读者与简历场景的英文导读、实现范围摘要、不适用场景与相关工作对照见 [THEORY.en.md](THEORY.en.md)；与本文冲突时以**本文**为准。
 
-主链与代码一致：**Intent Sniffer (Radar) → Safety Gate (可选) → Compute-Aware Router → Structured Compiler → Red-Team Critic → Artifact Dispatcher**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Dispatcher 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
+主链与代码一致：**Intent Sniffer (Intent Sniffer) → Safety Gate (可选) → Compute-Aware Router → Structured Compiler → Red-Team Critic → Artifact Dispatcher**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Dispatcher 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
 
 ## 架构分类与实体定义 (Architecture Taxonomy)
 
@@ -17,7 +17,7 @@
 
 ### 身份隔离准则 (Persona & Pronoun Discipline)
 为彻底解决 Identity Loop，系统要求在编译制品（Draft）内严格执行人称规约：
-- **客观简报 (Task Context)**: 代替原有的 `<thinking>` 内部推理块。必须使用**中立第三人称/非人称分析视角**（例如 "This task involves..."，而非 "I will..."）。
+- **客观简报 (Task Context)**: 代替原有的 `<task context>` 内部推理块。必须使用**中立第三人称/非人称分析视角**（例如 "This task involves..."，而非 "I will..."）。
 - **指令集 (Instructions)**: 对 Target 使用**第二人称**（"You are...", "You must..."）。
 - **编排器隐身**: 编排器自身的私有推理（"I need to structure this..."）**严禁**泄露进制品，一旦泄露将被 Critic 拦截。
 
@@ -115,10 +115,10 @@ graph TD
 | §3 logits、采样 | 无：CLI **只产出文本**；README 要求用户在最终 API 配置解码 | Outlines 等约束解码实现 |
 | §4 闭环、PRM | Critic↔Compile 回路；可选 PRM 标量门控 | 解码器内验证器搜索栈 |
 | §5 锚点/流形隐喻 | `anchor_persona` 与措辞建议 | 可测几何「投影」 |
-| §6 对齐、误拒 | Radar `alignment_risk` 与闸门策略 | 部署策略与 RM 细节 |
+| §6 对齐、误拒 | Intent Sniffer `alignment_risk` 与闸门策略 | 部署策略与 RM 细节 |
 | §7 软提示、DSPy | `dspy_sketch` 文本草图 | P-Tuning 训练、可运行 DSPy 流水线 |
 | 编译实证基线（随仓库附带） | `evalsets/bundled`、`prompt-polisher-eval`：Tier A 结构期望；Tier B 可选 Raw vs 编译稿成对 + 简单 gold | 用户域内完整基准、跨模型普适结论 |
-| §8 注入、越狱、深度防御 | 启发式与 Radar JSON、XML 闭合等浅层规则 | CaMeL 式架构隔离、自适应攻击基准闭环 |
+| §8 注入、越狱、深度防御 | 启发式与 Intent Sniffer JSON、XML 闭合等浅层规则 | CaMeL 式架构隔离、自适应攻击基准闭环 |
 
 ## 理论地图
 

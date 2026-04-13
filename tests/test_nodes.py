@@ -40,9 +40,7 @@ def test_node_red_team_critic_invalid_json_logs_warning(
     draft = "<task_context>t</task_context><user_context>u</user_context>" + "x" * 30
     with caplog.at_level(logging.WARNING):
         out = asyncio.run(
-            node_red_team_critic(
-                {"raw_prompt": "r", "compiler_draft": draft}, llm, settings
-            )
+            node_red_team_critic({"raw_prompt": "r", "compiler_draft": draft}, llm, settings)
         )
     assert out["red_team_critic_passed"] is False
     assert out["red_team_critic_feedback"] == "critic_json_parse_error"

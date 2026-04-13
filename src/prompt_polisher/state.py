@@ -12,8 +12,8 @@ OutputRoute = Literal["instance", "template", "dspy"]
 # ---------------------------------------------------------------------------
 
 
-class RadarAnalysis(BaseModel):
-    """Output of the Radar node: Orchestrator analyzes Author intent and threat signals."""
+class SnifferAnalysis(BaseModel):
+    """Output of the Sniffer node: Orchestrator analyzes Author intent and threat signals."""
 
     negations_flipped: str = Field(default="", description="Positive rewrite of the raw prompt.")
     threats: list[str] = Field(default_factory=list, description="Identified threat strings.")

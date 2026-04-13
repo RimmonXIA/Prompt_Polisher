@@ -17,7 +17,7 @@
 
 - 🎯 **注意力管理 (Attention Management)**：通过**首尾强化**对抗 "Lost in the Middle" 效应，并引入**锚点角色 (Anchor Persona)** / 流形寻址以稳定输出风格与详略。
 - 🛡️ **内置安全闸门 (Built-in Safety)**：**启发式预扫描**与模型驱动的**威胁雷达**叠加，探测注入与对齐信号。使用 **XML 沙盒隔离 (XML Sandboxing)** 确保指令隔离，并支持可选的 **PRM 式标量门控**（启发式，非形式化安全保证）。
-- ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<thinking>` 标签与 ICL 少样本示范。利用**雷达驱动的正向化改写 (Positive Framing)** 中和意图解构中的指令失效。
+- ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<task context>` 标签与 ICL 少样本示范。利用**雷达驱动的正向化改写 (Positive Framing)** 中和意图解构中的指令失效。
 - 🎨 **风格镜像干预 (Style Mirroring Intervention)**：检测低熵输入 (Perspective Mimesis) 并通过**词量提升 (Vocabulary Elevation)** 与**结构启动 (Structural Priming)** 进行主动干预，确保目标模型镜像出专家级的认知标准。
 - 🤖 **多轨输出与 A2A 原生**：除 Prompt 外，同时产出 **LangGraph 蓝图** 与 **DSPy 代码草图**。草图与仓库内声明式签名（[`DraftCompile` / `DraftCritic`](src/prompt_polisher/compiler_dspy.py)）对齐；完整 DSPy 优化循环不在本工具范围内。作为全合规 **A2A 参与者**，支持 JSON-RPC 与 SSE 实时任务委托。
 - 🔌 **多供应商编译栈**：图内 LLM 调用经 **LiteLLM**（[`llm.py`](src/prompt_polisher/llm.py)）统一路由，一套配置可对接 OpenAI、Anthropic、Gemini、DeepSeek 等众多后端。
@@ -43,8 +43,8 @@ graph LR
     end
 
     Raw([原始输入]) --> JSONRPC
-    JSONRPC --> Radar[Node 1: 雷达]
-    Radar --> Gate{威胁闸门}
+    JSONRPC --> Intent Sniffer[Node 1: 雷达]
+    Intent Sniffer --> Gate{威胁闸门}
     Gate -->|中止| Stop([提前终止])
     Gate -->|通过| Route[Node 2: 路由]
     Route --> Compile[Node 3: 编译]
@@ -52,7 +52,7 @@ graph LR
     Critic -->|重试| Compile
     Critic -->|通过| Final([最终产物])
 
-    class Radar,Route,Compile node;
+    class Intent Sniffer,Route,Compile node;
     class Critic critic;
     class Gate gate;
     class Stop,Final output;
@@ -121,8 +121,8 @@ uv run prompt-polisher --serve --port 8000
 
 | 架构节点 | 核心代码实现 |
 | --- | --- |
-| **Node 1: 雷达 (Radar)** | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) (`node_intent_sniffer`) |
-| **威胁闸门 (Threat Gate)** | [`src/prompt_polisher/gate.py`](src/prompt_polisher/gate.py) |
+| **Node 1: 雷达 (Intent Sniffer)** | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) (`node_intent_sniffer`) |
+| **威胁闸门 (Safety Gate)** | [`src/prompt_polisher/gate.py`](src/prompt_polisher/gate.py) |
 | **Node 2: 路由 (Routing)** | `nodes.py` (`node_compute_aware_router`) |
 | **Node 3: 编译 (Compile)** | `nodes.py` (`node_structured_compiler`) |
 | **Node 4: 审查 (Critic)** | `nodes.py` (`node_red_team_critic`) |
