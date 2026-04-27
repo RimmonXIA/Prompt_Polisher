@@ -7,27 +7,93 @@
 
 🌐 [English](./README.md) | 简体中文
 
-基于 **LangGraph** 的多节点**提示词编译**流水线：将原始需求重塑为具备更强注意力分配管理和安全边界的高质量 Prompt。专为提示词工程师与自主 Agent 设计。
+*就像 GCC 将 C 语言编译为确定的机器码，Prompt Polisher 将人类的模糊意图编译为确定的大模型上下文。*
+
+基于 **LangGraph** 的多节点提示词编译流水线：将原始需求重塑为结构化、安全且具备极致性能的高质量指令。专为提示词工程师与自主 Agent 设计。
+
+---
+
+## 💡 Aha Moment
+
+告别那些总是忽略约束条件、随意格式化输出的大模型。
+
+**Before (模糊原始意图):**
+> "总结一下这个仓库，帮我写个发布说明，注意要写得好一点。"
+
+**After (经 Prompt Polisher 编译后):**
+```xml
+<task_context>
+The user requires a release note summary for the current repository...
+</task_context>
+<primary_directive>
+Generate a structured release note summary based on the provided repository context.
+</primary_directive>
+<constraints>
+- Maintain a professional and concise tone.
+- Do not invent or hallucinate features not present in the context.
+- Format the output using markdown headers and bullet points.
+</constraints>
+```
+*(编译器会自动推断隐藏约束、注入结构化锚点，并进行正向化改写以最大化模型服从度。)*
 
 ---
 
 ## 🚀 为什么选择 Prompt Polisher？
 
-大多数 Prompt 失败的原因在于：缺乏结构、误触负向约束，或者透支了模型单次思考的逻辑极限。**Prompt Polisher** 将提示词工程视为对大模型注意力、算力和安全边界的**结构化干预**：
+大多数 Prompt 失败的原因在于：缺乏结构、误触负向约束，或者透支了模型单次思考的逻辑极限。Prompt Polisher 从三大支柱切入进行结构化干预：
 
-- 🎯 **注意力管理 (Attention Management)**：通过**首尾强化**对抗 "Lost in the Middle" 效应，并引入**锚点角色 (Anchor Persona)** / 流形寻址以稳定输出风格与详略。
-- 🛡️ **内置安全闸门 (Built-in Safety)**：**启发式预扫描**与模型驱动的**威胁雷达**叠加，探测注入与对齐信号。使用 **XML 沙盒隔离 (XML Sandboxing)** 确保指令隔离，并支持可选的 **PRM 式标量门控**（启发式，非形式化安全保证）。
-- ⚙️ **算力优化 (Compute-Optimized)**：自动注入 `<task context>` 标签与 ICL 少样本示范。利用**雷达驱动的正向化改写 (Positive Framing)** 中和意图解构中的指令失效。
-- 🎨 **风格镜像干预 (Style Mirroring Intervention)**：检测低熵输入 (Perspective Mimesis) 并通过**词量提升 (Vocabulary Elevation)** 与**结构启动 (Structural Priming)** 进行主动干预，确保目标模型镜像出专家级的认知标准。
-- 🤖 **多轨输出与 A2A 原生**：除 Prompt 外，同时产出 **LangGraph 蓝图** 与 **DSPy 代码草图**。草图与仓库内声明式签名（[`DraftCompile` / `DraftCritic`](src/prompt_polisher/compiler_dspy.py)）对齐；完整 DSPy 优化循环不在本工具范围内。作为全合规 **A2A 参与者**，支持 JSON-RPC 与 SSE 实时任务委托。
-- 🔌 **多供应商编译栈**：图内 LLM 调用经 **LiteLLM**（[`llm.py`](src/prompt_polisher/llm.py)）统一路由，一套配置可对接 OpenAI、Anthropic、Gemini、DeepSeek 等众多后端。
-- 📐 **模式化节点 I/O**：雷达、路由等步骤要求输出 **与 Pydantic 模式一致的 JSON**（模式写入 system 提示，再校验与容错解析）。雷达在模型返回无效 JSON 时**安全降级**；这与你在自有栈里使用的 API 级结构化解码是互补关系，而非替代。
+### ⚡️ 效能跃升 (High-Performance)
+- **注意力管理**：通过**首尾强化**对抗大模型的 "Lost in the Middle" 效应，并引入**锚点角色**稳定输出风格与详略。
+- **算力优化**：自动注入 `<task_context>` 标签与 ICL (少样本示范)，通过延长上下文序列来换取更高的推理质量。
+- **风格增强**：主动检测低熵输入，通过词量提升与结构启动干预，确保目标模型能够镜像出专家级的认知标准。
 
-编排器（本编译器）以**分析者**身份工作：**不扮演**最终将执行成稿的下游助手，以降低身份漂移与「编译器即聊天机器人」式混淆。角色与边界详见 [docs/THEORY.zh.md](docs/THEORY.zh.md)（权威）与 [docs/THEORY.en.md](docs/THEORY.en.md)（英文摘要）。
+### 🛡️ 原生安全 (Built-in Safety)
+- **威胁雷达**：内置启发式预扫描与模型驱动的意图嗅探器，在执行前精准拦截 Prompt 注入与越狱攻击。
+- **沙箱隔离**：使用 **XML 沙盒 (XML Sandboxing)** 确保用户指令与系统指令安全隔离。
+- **质量门控**：支持可选的自动化质量打分体系，在劣质结果到达最终用户前进行拦截。
+
+### 🔌 极客体验 (Developer & Agent Native)
+- **多轨输出**：除最终 Prompt 外，同时生成供下游自动化使用的 **LangGraph 蓝图** 与 **DSPy 代码草图**。
+- **A2A 原生支持**：作为全合规的 **A2A 参与者**，原生支持 JSON-RPC 与 SSE 实时任务委托。
+- **多模型兼容**：图内调用经 **LiteLLM** 统一路由，一套代码无缝对接 OpenAI、Anthropic、Gemini、DeepSeek 等所有主流后端。
 
 ---
 
-## 🗺️ 工作流架构 (Workflow Architecture)
+## ⚡ 快速开始
+
+### 1. 安装配置 (Setup)
+```bash
+# 同步依赖
+uv sync --all-groups
+
+# 配置环境变量
+cp .env.example .env   # 填写 API Keys (OpenAI, DeepSeek, Claude, Gemini 等)
+```
+
+### 2. 使用方法 (Usage)
+```bash
+# 基础模式: 直接获取编译后的 prompt
+uv run prompt-polisher "Summarize this repo for a release note"
+
+# 专业模式: 获取包含完整审计轨迹的 Markdown 报告
+uv run prompt-polisher -m "你的原始需求"
+
+# Agent 模式: 输出版本化的 JSON 信封，供自动化脚本解析
+uv run prompt-polisher --envelope "你的原始需求"
+
+# 服务模式: 启动 A2A HTTP 服务器
+uv run prompt-polisher --serve --port 8000
+```
+
+### 3. 示例报告与库内调用
+- **样例输出**：[examples/](examples/README.md) 涵盖正常完成、**威胁闸门中止**与**多节点路由**提示。
+- **Python 嵌入**：使用 [`run_compiler_async`](src/prompt_polisher/graph.py)，详见 **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**。
+
+---
+
+## 🗺️ 内部工作流 (Workflow Architecture)
+
+在底层，Prompt Polisher 运行着一个多 Agent 的 LangGraph 协作流。它严格扮演**架构分析师**的角色，与最终执行 Prompt 的下游大模型物理隔离，以防止身份混淆。
 
 ```mermaid
 graph LR
@@ -61,48 +127,14 @@ graph LR
 
 ---
 
-## ⚡ 快速开始
-
-### 1. 安装配置 (Setup)
-```bash
-# 同步依赖
-uv sync --all-groups
-
-# 配置环境变量
-cp .env.example .env   # 填写 API Keys (OpenAI, DeepSeek, Claude, Gemini 等)
-```
-
-### 2. 使用方法 (Usage)
-```bash
-# 基础模式: 直接获取编译后的 prompt
-uv run prompt-polisher "Summarize this repo for a release note"
-
-# 专业模式: 获取包含完整审计轨迹的 Markdown 报告
-uv run prompt-polisher -m "你的原始需求"
-
-# Agent 模式: 输出版本化的 JSON 信封，供自动化脚本解析
-uv run prompt-polisher --envelope "你的原始需求"
-
-# 服务模式: 启动 A2A HTTP 服务器
-uv run prompt-polisher --serve --port 8000
-```
-
-### 3. 示例报告与库内调用
-
-- **样例输出**：[examples/](examples/README.md) 涵盖正常完成、**威胁闸门中止**与**多节点路由**提示（`01_happy_path`、`02_aborted_gate`、`03_multi_node_hint`）。
-- **在 Python 中嵌入**：使用 [`run_compiler_async`](src/prompt_polisher/graph.py)，传入 `Settings` 与 [`LLMClient`](src/prompt_polisher/llm.py)；可选 `on_node_start` / `on_node_done` 在每个图节点前后回调（CLI 进度条依赖于此）。与代码一致的序列与状态流见 **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**（英文正文）。
-
----
-
 ## 🛠️ 开发者与自动化指南
 
 ### 将 CLI 作为工具协议
-对于脚本和编码 Agent (如 Cursor, Windsurf, 或自定义 worker) 而言，应将 CLI 视为一个协议来使用：
+对于编码 Agent (如 Cursor) 而言，应将 CLI 视为一个协议：
 - **stdout**: 承载主要返回体（文本、Markdown 或 JSON）。
-- **stderr**: 承载日志与诊断信息（使用 `--quiet` 参数可减少无用噪音）。
+- **stderr**: 承载日志与诊断信息（使用 `--quiet` 减少噪音）。
 
 #### 自动化退出码 (Exit Codes)
-
 | 状态码 | 含义 |
 | --- | --- |
 | `0` | **成功**: 编译成功结束，且未被威胁闸门中止。 |
@@ -110,67 +142,34 @@ uv run prompt-polisher --serve --port 8000
 | `1` | **错误**: 配置有误、I/O 失败或无效的 CLI 调用。 |
 
 #### 数据信封结构 (`--envelope`)
-
-标准的 JSON 信封包含以下字段：
+标准 JSON 信封包含：
 - `compiled`: 当且仅当未被威胁闸门中止时为 `true`。
 - `version`: 当前版本为 `1`。
 - `report`: 包含雷达、路由、审查和交付物等完整编译报告。
-- `abort_reason`: 成功时为 `null`；当被闸门中止时为一个包含 `code`, `message`, 与 `detail` 的对象。
-
-### 理论与代码实现映射 (Implementation Mapping)
-
-| 架构节点 | 核心代码实现 |
-| --- | --- |
-| **Node 1: 雷达 (Intent Sniffer)** | [`src/prompt_polisher/nodes.py`](src/prompt_polisher/nodes.py) (`node_intent_sniffer`) |
-| **威胁闸门 (Safety Gate)** | [`src/prompt_polisher/gate.py`](src/prompt_polisher/gate.py) |
-| **Node 2: 路由 (Routing)** | `nodes.py` (`node_compute_aware_router`) |
-| **Node 3: 编译 (Compile)** | `nodes.py` (`node_structured_compiler`) |
-| **Node 4: 审查 (Critic)** | `nodes.py` (`node_red_team_critic`) |
-| **全局状态 (Global State)** | [`src/prompt_polisher/state.py`](src/prompt_polisher/state.py) |
-| **评测基线** | [`src/prompt_polisher/eval/`](src/prompt_polisher/eval/), [`evalsets/bundled/`](evalsets/bundled/README.md) |
-
-**CI 质量门槛**：[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 在 **Python 3.11 与 3.12** 上运行 **Ruff**、**Mypy** 与 **pytest**。
-
-### CLI 调用链（Mermaid 参考）
-
-与 `uv run prompt-polisher` 一致的端到端示意图：CLI 启动、LangGraph 边、[`prompts/`](src/prompt_polisher/prompts/) 与 [`prompts_bundle.py`](src/prompt_polisher/prompts_bundle.py)、标准输出/标准错误模式、`GraphState` 更新 — 见 **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**（英文正文）。
+- `abort_reason`: 成功时为 `null`；被闸门中止时返回错误详情对象。
 
 ### 评测基线
-
-`evalsets/bundled/` 提供版本化任务：**Tier A** 仅跑编译图并检查结构化期望；**Tier B**（可选）对 `items.jsonl` 中配置了 `gold` 的条目做 **原始意图 vs 编译稿** 的成对执行器打分。
-
+`evalsets/bundled/` 提供版本化评测任务。
 ```bash
 uv run prompt-polisher-eval --help
-uv run prompt-polisher-eval -V
 uv run prompt-polisher-eval --structural-only --fail-on-structural
 uv run prompt-polisher-eval --output eval-report.json
 ```
 
-可用 `PROMPT_POLISHER_EVALSET` 或 `--evalset-dir` 指定目录。说明见 [`evalsets/bundled/README.md`](evalsets/bundled/README.md)；可选工作流：[`eval-live.yml`](.github/workflows/eval-live.yml)。
-
-
 > [!TIP]
-> 在环境变量中设置 `PROMPT_POLISHER_AGENT=1`，可以使所有调用默认输出 `--envelope` 格式的数据包。
+> 环境变量设置 `PROMPT_POLISHER_AGENT=1`，可使所有调用默认输出 `--envelope` 格式。
 
 ### 核心配置 (Configuration)
 位于 `.env` 中的关键设置：
-- `LLM_PROVIDER`: `openai`（默认）、`deepseek`、`anthropic`、`google`、`zhipu`、`aliyun` 等。
-- `LLM_MODEL`: 目标模型名称（如 `gpt-4o-mini`、`claude-3-5-sonnet-20240620`、`gemini/gemini-1.5-pro`）。
-- `LLM_API_KEY`: 通用 API 秘钥。为保证兼容性，仍支持 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY` 等供应商特定变量。
+- `LLM_PROVIDER`: `deepseek`（默认）、`openai`、`anthropic` 等。
+- `LLM_MODEL`: 目标模型名称（如 `deepseek-v4-pro`）。
+- `LLM_API_KEY`: 通用 API 秘钥。
 - `AUTHOR_TRUST_MODE`: 设置为 `true` 可针对可信作者禁用严格的安全闸门。
-- `MAX_CRITIC_ITERATIONS`: 控制审查反馈循环的最大深度（默认: 3）。
-- `CRITIC_USE_PRM`: 启用可选的基于标量的过程奖励门控（启发式）。
-- `PRM_MODEL`: 在开启 `CRITIC_USE_PRM` 时，可选覆盖内置 LLM PRM 所用模型（未设置时与主编译模型解析规则一致）。
-- `PRM_MIN_SCORE`: PRM 门控最低分数，取值 `[0, 1]`（默认 `0.45`）。
-- `EXTERNAL_PRM_ENDPOINT`: 可选的 **自备过程评分** HTTP 地址。客户端 `POST` JSON `{"draft": "...", "intent": "..."}`，响应需含数值 `score` 与可选 `note`；见 [`prm.py`](src/prompt_polisher/prm.py)。若配置，将**优先于**内置 LLM PRM 调用。
-- **Langfuse**（可选链路追踪）：设置 `LANGFUSE_TRACING=true`，并配置 `LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`（可选 `LANGFUSE_BASE_URL`）。安装依赖：`uv sync --extra langfuse`；连通性检查：`uv run prompt-polisher-langfuse-check`。
-
-### 范围与非承诺
-
-Prompt Polisher 是面向黑盒语言模型的**分阶段、可审计的编译型工作流**。它**不保证**下游任务必然成功、形式化安全认证，或在所有模型与部署上均为最优提示词。雷达、闸门与审查均为**启发式**；须与系统设计、监控与任务级评测配合使用。明确局限与**不宜单独依赖本工具**的场景见 **[docs/THEORY.zh.md](docs/THEORY.zh.md)**（权威）与 **[docs/THEORY.en.md](docs/THEORY.en.md)**（英文摘要）。
+- `CRITIC_USE_PRM`: 启用可选的过程奖励评分门控。
+- **Langfuse**: 设置 `LANGFUSE_TRACING=true` 并配置密钥开启链路追踪。
 
 > [!IMPORTANT]
-> **实现层面范围**: Prompt Polisher **仅产出文本制品**。它不直接在工具内部执行约束解码 (logits masking) 或采样控制；这些应在您的下游解码器或 API 客户端中配置。
+> Prompt Polisher **仅产出文本制品**。它不直接在工具内部执行约束解码 (logits masking) 或采样控制；这些应在您的下游解码器或 API 客户端中配置。
 
 ---
 
@@ -180,18 +179,19 @@ Prompt Polisher 是一个 [全合规 A2A 参与者](https://github.com/a2aprojec
 
 - **服务发现**: `uv run prompt-polisher --agent-card` 或访问 `GET /.well-known/agent-card.json`
 - **A2A 服务器**: `uv run prompt-polisher --serve --port 8000`
-- **服务接口**: 支持 `SendMessage`, `GetTask`, `ListTasks` (列出任务) 以及 `SendStreamingMessage` (SSE) 等 JSON-RPC 2.0 标准方法。
-- **合规状态**: 已完成 A2A 参与者全功能实现（含实时协议能力）。
+- **服务接口**: 支持 `SendMessage`, `GetTask`, `ListTasks` 以及 `SendStreamingMessage` (SSE)。
 
 ---
 
 ## 📖 深度理论与长文指南
 
+关于 5 大实体角色划分、详细架构理论及证据声明，请移步专用文档阅读：
+
 | 语言 | 产物 | 适用范围 |
 | --- | --- | --- |
-| **中文 (权威本 Canonical)** | [docs/THEORY.zh.md](docs/THEORY.zh.md) | **Source of Truth**：提供完整架构理论、证据等级声明及知识地图。 |
-| **英文 (摘要 Bridge)** | [docs/THEORY.en.md](docs/THEORY.en.md) | **过渡桥梁**：讨论产品边界与学术研究现状的对照摘要。 |
-| **英文 (实现对照 Operational)** | [docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md) | **与代码同步**：CLI→图→API、提示词文件接线、输出与状态字段的 Mermaid 说明（英文正文）。 |
+| **中文** | [docs/ARCHITECTURE.zh.md](docs/ARCHITECTURE.zh.md) | **架构白皮书**：核心架构哲学、严格的系统边界与编译管线说明。 |
+| **中文** | [docs/THEORY.zh.md](docs/THEORY.zh.md) | **学术深潜**：完整的机制推导、证据等级声明及流形/注意力探讨。 |
+| **英文 (Only)** | [docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md) | **实现对照**：CLI→图→API 输出与状态字段的 Mermaid 说明。 |
 
 ---
 

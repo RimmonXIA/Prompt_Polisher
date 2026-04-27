@@ -16,7 +16,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    llm_provider: ProviderName = Field(default="openai", alias="LLM_PROVIDER")
+    llm_provider: ProviderName = Field(default="deepseek", alias="LLM_PROVIDER")
 
     openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
     deepseek_api_key: SecretStr | None = Field(default=None, alias="DEEPSEEK_API_KEY")
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     openai_api_base: str | None = Field(default=None, alias="OPENAI_API_BASE")
 
     openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
-    deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
+    deepseek_model: str = Field(default="deepseek-v4-pro", alias="DEEPSEEK_MODEL")
     llm_model: str | None = Field(default=None, alias="LLM_MODEL")
 
     llm_temperature: float = Field(default=0.2, alias="LLM_TEMPERATURE", ge=0.0, le=2.0)
@@ -123,7 +123,7 @@ class Settings(BaseSettings):
         if self.llm_api_base:
             return self.llm_api_base.rstrip("/")
         if self.llm_provider == "deepseek":
-            return "https://api.deepseek.com/v1"
+            return "https://api.deepseek.com"
         if self.openai_api_base:
             return self.openai_api_base.rstrip("/")
         return None

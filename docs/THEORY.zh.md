@@ -1,8 +1,8 @@
-# 项目简介
+# Prompt Polisher — 学术深潜与底层理论推导 (Academic Deep Dive)
 
-**真值声明：** 本仓库内凡涉及架构叙事、分层干预机制、证据等级、局限性与非承诺的**理论表述**，均以**本文**为唯一权威来源；实现代码与 prompts 不应与本文矛盾。其它路径若曾存在与审计相关的备忘，均已废弃，不再维护。
+> **阅读说明：** 本文档是关于本项目机制设计的深度学术推导、证据链分析与系统底层逻辑（包含 8 层干预映射）。如果您只需快速了解系统架构哲学、工作流管线与边界，请优先阅读中英对照的 **[ARCHITECTURE.zh.md](ARCHITECTURE.zh.md)** / **[ARCHITECTURE.en.md](ARCHITECTURE.en.md)**。
 
-**English bridge（非权威摘要）：** 面向国际读者与简历场景的英文导读、实现范围摘要、不适用场景与相关工作对照见 [THEORY.en.md](THEORY.en.md)；与本文冲突时以**本文**为准。
+**真值声明：** 本仓库内凡涉及更底层的学术架构叙事、证据等级（Empirical/Analogy 等）、注意力机制探讨的**理论表述**，均以**本文档**为唯一权威来源。
 
 主链与代码一致：**Intent Sniffer (Intent Sniffer) → Safety Gate (可选) → Compute-Aware Router → Structured Compiler → Red-Team Critic → Artifact Dispatcher**。图中 **Layer** 为理论示意标签，与论文章节 §1.1–§8.13 的对应关系见 [理论地图](#理论地图)；**Dispatcher 旁 logits 相关标签**为完整理论中的 §3 示意，本仓库实现边界见下图后 [图注与实现边界](#图注与实现边界)。
 

@@ -13,6 +13,15 @@ def test_resolved_model_openai_default(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.resolved_model() == "gpt-4o-mini"
 
 
+def test_resolved_model_global_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "k")
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.llm_provider == "deepseek"
+    assert s.resolved_model() == "deepseek-v4-pro"
+
+
 def test_author_trust_mode_defaults_true(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.delenv("AUTHOR_TRUST_MODE", raising=False)
@@ -51,7 +60,7 @@ def test_deepseek_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "deepseek")
     get_settings.cache_clear()
     s = get_settings()
-    assert s.resolved_base_url() == "https://api.deepseek.com/v1"
+    assert s.resolved_base_url() == "https://api.deepseek.com"
 
 
 def test_apply_langchain_env(monkeypatch: pytest.MonkeyPatch) -> None:
