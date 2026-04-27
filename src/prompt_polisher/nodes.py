@@ -62,6 +62,8 @@ def _parse_pydantic(model_cls: type[_M], text: str) -> _M | None:
 async def node_intent_sniffer(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
+    if state.get("fatal_error"):
+        return {}
     raw = state["raw_prompt"]
     heuristic_injection = looks_like_injection(raw)
     bundle = prompt_bundle(settings)
@@ -74,8 +76,7 @@ async def node_intent_sniffer(
         parsed: SnifferAnalysis | None = _parse_pydantic(SnifferAnalysis, text)
     except Exception as e:
         logger.error("LLM failure in node_intent_sniffer: %s", e)
-        parsed = None
-        text = "llm_error"
+        return {"fatal_error": True, "fatal_error_reason": str(e)}
 
     if parsed is None:
         parsed = SnifferAnalysis(
@@ -96,6 +97,8 @@ async def node_intent_sniffer(
 async def node_compute_aware_router(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
+    if state.get("fatal_error"):
+        return {}
     sniffer = state.get("intent_sniffer_analysis") or {}
     bundle = prompt_bundle(settings)
     system = bundle.routing_system(settings.author_trust_mode)
@@ -108,8 +111,7 @@ async def node_compute_aware_router(
         parsed: RoutingDecision | None = _parse_pydantic(RoutingDecision, text)
     except Exception as e:
         logger.error("LLM failure in node_compute_aware_router: %s", e)
-        parsed = None
-        text = "llm_error"
+        return {"fatal_error": True, "fatal_error_reason": str(e)}
 
     if parsed is None:
         parsed = RoutingDecision(
@@ -125,6 +127,8 @@ async def node_compute_aware_router(
 async def node_structured_compiler(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
+    if state.get("fatal_error"):
+        return {}
     sniffer = state.get("intent_sniffer_analysis") or {}
     routing = state.get("compute_aware_routing_decision") or {}
     critic_fb = state.get("red_team_critic_feedback") or ""
@@ -144,7 +148,7 @@ async def node_structured_compiler(
         parsed: CompileDraft | None = _parse_pydantic(CompileDraft, text)
     except Exception as e:
         logger.error("LLM failure in node_structured_compiler: %s", e)
-        return {"compiler_draft": state["raw_prompt"]}
+        return {"fatal_error": True, "fatal_error_reason": str(e)}
     if parsed and parsed.draft.strip():
         draft = parsed.draft.strip()
     else:
@@ -175,6 +179,8 @@ def _rule_check_draft(draft: str) -> tuple[bool, str]:
 async def node_red_team_critic(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
+    if state.get("fatal_error"):
+        return {}
     draft = state.get("compiler_draft") or ""
     iterations = int(state.get("red_team_critic_iterations") or 0)
 
@@ -212,11 +218,7 @@ async def node_red_team_critic(
         parsed: CriticFeedback | None = _parse_pydantic(CriticFeedback, text)
     except Exception as e:
         logger.error("LLM failure in node_red_team_critic: %s", e)
-        return {
-            "red_team_critic_passed": False,
-            "red_team_critic_feedback": "llm_connection_error_halting",
-            "red_team_critic_iterations": settings.max_critic_iterations,  # Force halt
-        }
+        return {"fatal_error": True, "fatal_error_reason": str(e)}
     if parsed is None:
         logger.warning(
             "Critic node returned unparseable JSON or prose. Raw text preview: %s",
@@ -254,6 +256,8 @@ def _pick_route(routing: dict[str, object]) -> OutputRoute:
 async def node_artifact_dispatcher(
     state: GraphState, llm: LLMClient, settings: Settings
 ) -> dict[str, Any]:
+    if state.get("fatal_error"):
+        return {}
     routing = state.get("compute_aware_routing_decision") or {}
     route = _pick_route(routing)
     draft = state.get("compiler_draft") or ""
@@ -287,7 +291,7 @@ async def node_artifact_dispatcher(
         parsed: RouterDeliverable | None = _parse_pydantic(RouterDeliverable, text)
     except Exception as e:
         logger.error("LLM failure in node_artifact_dispatcher: %s", e)
-        parsed = None
+        return {"fatal_error": True, "fatal_error_reason": str(e)}
     if not parsed:
         parsed = RouterDeliverable(
             final_prompt=draft,

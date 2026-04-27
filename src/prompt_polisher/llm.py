@@ -69,7 +69,16 @@ class UniversalLLMClient:
         self._settings = settings
         self._api_key = settings.resolved_api_key()
         self._base_url = settings.resolved_base_url()
-        self._model = settings.resolved_model()
+        
+    def _resolve_model_name(self, model: str | None) -> str:
+        resolved = model if model else self._settings.resolved_model()
+        provider = self._settings.llm_provider
+        if provider and "/" not in resolved:
+            # LiteLLM needs provider prefixes for most non-standard models
+            if provider == "openai" and resolved.startswith("gpt-"):
+                return resolved
+            return f"{provider}/{resolved}"
+        return resolved
 
     def chat(
         self,
@@ -79,7 +88,7 @@ class UniversalLLMClient:
         model: str | None = None,
     ) -> str:
         temp = self._settings.llm_temperature if temperature is None else temperature
-        resolved_model = model if model else self._model
+        resolved_model = self._resolve_model_name(model)
         preview = None
         if self._settings.log_prompt_previews:
             preview = preview_text(str(messages))
@@ -121,7 +130,7 @@ class UniversalLLMClient:
         model: str | None = None,
     ) -> str:
         temp = self._settings.llm_temperature if temperature is None else temperature
-        resolved_model = model if model else self._model
+        resolved_model = self._resolve_model_name(model)
         preview = None
         if self._settings.log_prompt_previews:
             preview = preview_text(str(messages))

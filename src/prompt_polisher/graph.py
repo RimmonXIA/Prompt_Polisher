@@ -56,18 +56,42 @@ def build_graph(settings: Settings, llm: LLMClient) -> Any:
     graph.add_edge(START, "intent_sniffer")
 
     def route_after_intent_sniffer(s: GraphState) -> str:
+        if s.get("fatal_error"):
+            return END
         abort, _ = should_abort_after_intent_sniffer(s, settings)
         return "safety_abort_gate" if abort else "compute_aware_router"
 
     graph.add_conditional_edges(
         "intent_sniffer",
         cast(Any, route_after_intent_sniffer),
-        {"safety_abort_gate": "safety_abort_gate", "compute_aware_router": "compute_aware_router"},
+        {"safety_abort_gate": "safety_abort_gate", "compute_aware_router": "compute_aware_router", END: END},
     )
-    graph.add_edge("compute_aware_router", "structured_compiler")
-    graph.add_edge("structured_compiler", "red_team_critic")
+
+    def route_after_compute_aware_router(s: GraphState) -> str:
+        if s.get("fatal_error"):
+            return END
+        return "structured_compiler"
+
+    graph.add_conditional_edges(
+        "compute_aware_router",
+        cast(Any, route_after_compute_aware_router),
+        {"structured_compiler": "structured_compiler", END: END},
+    )
+
+    def route_after_structured_compiler(s: GraphState) -> str:
+        if s.get("fatal_error"):
+            return END
+        return "red_team_critic"
+
+    graph.add_conditional_edges(
+        "structured_compiler",
+        cast(Any, route_after_structured_compiler),
+        {"red_team_critic": "red_team_critic", END: END},
+    )
 
     def route_after_red_team_critic(state: GraphState) -> str:
+        if state.get("fatal_error"):
+            return END
         if state.get("red_team_critic_passed"):
             return "artifact_dispatcher"
         it = int(state.get("red_team_critic_iterations") or 0)
@@ -81,6 +105,7 @@ def build_graph(settings: Settings, llm: LLMClient) -> Any:
         {
             "artifact_dispatcher": "artifact_dispatcher",
             "structured_compiler": "structured_compiler",
+            END: END,
         },
     )
     graph.add_edge("artifact_dispatcher", END)

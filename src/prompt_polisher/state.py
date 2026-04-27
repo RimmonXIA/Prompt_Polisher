@@ -142,3 +142,6 @@ class GraphState(TypedDict, total=False):
     compilation_aborted: bool
     abort_reason: str
     abort_detail: str
+
+    fatal_error: bool
+    fatal_error_reason: str

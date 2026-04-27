@@ -85,6 +85,8 @@ def _dampen_http_client_loggers() -> None:
 
 
 def exit_code_for_state(state: GraphState) -> int:
+    if bool(state.get("fatal_error")):
+        return EXIT_ERROR
     if bool(state.get("compilation_aborted")):
         return EXIT_COMPILATION_ABORTED
     return EXIT_SUCCESS
@@ -105,15 +107,22 @@ def compilation_envelope(
         include_before_after=include_before_after,
     )
     aborted = bool(state.get("compilation_aborted"))
+    fatal = bool(state.get("fatal_error"))
     err: dict[str, Any] | None = None
-    if aborted:
+    if fatal:
+        err = {
+            "code": "FATAL_ERROR",
+            "message": str(state.get("fatal_error_reason") or "llm_error").strip() or None,
+            "detail": None,
+        }
+    elif aborted:
         err = {
             "code": "COMPILATION_ABORTED",
             "message": str(state.get("abort_reason") or "compilation_aborted").strip() or None,
             "detail": str(state.get("abort_detail") or "").strip() or None,
         }
     return {
-        "compiled": not aborted,
+        "compiled": not (aborted or fatal),
         "version": ENVELOPE_SCHEMA_VERSION,
         "report": data,
         "abort_reason": err,
@@ -313,6 +322,8 @@ def main(argv: list[str] | None = None) -> int:
                     elapsed=time.monotonic() - t0,
                     was_aborted=bool(result.get("compilation_aborted")),
                     was_fallback=was_fallback,
+                    was_fatal=bool(result.get("fatal_error")),
+                    fatal_reason=str(result.get("fatal_error_reason") or ""),
                 )
         except KeyboardInterrupt:
             if renderer:
@@ -351,12 +362,13 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(env_payload, indent=2, ensure_ascii=False, default=str))
         return code
 
-    if renderer:
+    if renderer and not bool(result.get("fatal_error")):
         renderer.print_result_header()
 
-    print(result.get("final_prompt", ""))
+    if not bool(result.get("fatal_error")):
+        print(result.get("final_prompt", ""))
 
-    if renderer:
+    if renderer and not bool(result.get("fatal_error")):
         renderer.print_result_footer()
 
     return code

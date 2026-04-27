@@ -237,13 +237,29 @@ class SessionRenderer:
         self._console.print("\n[bold red]🚨 流程被用户中断 (Ctrl+C)[/bold red]\n")
 
     def finish(
-        self, *, elapsed: float, was_aborted: bool = False, was_fallback: bool = False
+        self,
+        *,
+        elapsed: float,
+        was_aborted: bool = False,
+        was_fallback: bool = False,
+        was_fatal: bool = False,
+        fatal_reason: str = "",
     ) -> None:
         if self._current_status is not None:
             self._current_status.stop()
             self._current_status = None
 
-        if was_aborted:
+        if was_fatal:
+            self._console.print()
+            panel = Panel(
+                f"详情: {fatal_reason}\n建议: 请检查 config.py 配置或验证您的 API 密钥与模型名称。",
+                title="🚨 API 连接中断",
+                border_style="red",
+                padding=(1, 2)
+            )
+            self._console.print(panel)
+            self._console.print()
+        elif was_aborted:
             self._console.print(f"\n[red]🚫 编译流程已中止 (历时 {elapsed:.1f}s)[/red]\n")
         else:
             critic_iters = self._node_counts.get("red_team_critic", 0)
