@@ -17,24 +17,44 @@ A **multi-node LangGraph compiler** that turns rough intent into structured, saf
 
 Stop wrestling with models that ignore your constraints or hallucinate formats.
 
-**Before (Rough Intent):**
-> "Summarize this repo for a release note and make sure it's good."
+**Before (Rough, stream-of-consciousness intent):**
+> "Decode the user's raw input and reframe the intent, then find the 3 most relevant meta-questions to improve the response. Answer those meta-questions first, then respond to the reframed intent in the full context..."
 
-**After (Compiled by Prompt Polisher):**
+**After (Compiled by Prompt Polisher Pro):**
 ```xml
-<task_context>
-The user requires a release note summary for the current repository...
+[GOLDEN DRAFT - PRIORITIZE] <task_context>
+This task involves processing a user's raw query through a cognitive enhancement pipeline. The goal is to produce a response that is not only directly aligned with the user's deeper intent but also strengthened by a preliminary meta-analysis...
 </task_context>
-<primary_directive>
-Generate a structured release note summary based on the provided repository context.
-</primary_directive>
-<constraints>
-- Maintain a professional and concise tone.
-- Do not invent or hallucinate features not present in the context.
-- Format the output using markdown headers and bullet points.
-</constraints>
+
+<system_constraints>
+1. You are a senior systems architect and cognitive process optimizer.
+2. Your role is to follow a strict sequential workflow: first, decode and reframe the user's raw input; then, generate three meta questions; next, answer those meta questions; finally, compose a comprehensive response...
+3. You must not skip any step. You must explicitly produce output for each stage before moving on.
+</system_constraints>
+
+<task_logic>
+Step 1: Intent Decoding & Reframing
+Step 2: Meta Question Generation
+Step 3: Answer Meta Questions
+Step 4: Final Response
+</task_logic>
+
+<output_format>
+Your entire output must consist of exactly four clearly labeled sections:
+## Reframed Intent
+## Meta Questions
+## Answers to Meta Questions
+## Final Response
+
+Example:
+User Input: "How to learn Python?"
+Reframed Intent: "How can a complete beginner efficiently acquire practical Python programming skills for data analysis within 3 months?"
+Meta Questions:
+1. What are the most common pitfalls that delay beginners?
+...
+</output_format>
 ```
-*(The compiler automatically infers constraints, injects structural anchors, and frames instructions positively for maximum compliance.)*
+*(The compiler automatically infers constraints, injects strict sequential workflows, and generates highly relevant In-Context Learning examples (Few-shots) to maximize cognitive compliance.)*
 
 ---
 

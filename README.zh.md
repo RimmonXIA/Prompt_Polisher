@@ -17,24 +17,44 @@
 
 告别那些总是忽略约束条件、随意格式化输出的大模型。
 
-**Before (模糊原始意图):**
-> "总结一下这个仓库，帮我写个发布说明，注意要写得好一点。"
+**Before (人类的模糊、中英夹杂意图):**
+> "对用户的raw inputs 进行intent decoding & reframing, then 找到对于提升 response 最相关的3个meta questions. answer the mete quesions first. then in the full contexts, respond to the reframed intent..."
 
-**After (经 Prompt Polisher 编译后):**
+**After (经 Prompt Polisher Pro 编译后):**
 ```xml
-<task_context>
-The user requires a release note summary for the current repository...
+[GOLDEN DRAFT - PRIORITIZE] <task_context>
+此任务涉及对用户的原始输入进行意图解码与重构，然后提出3个最相关的元问题以提升重构意图回应的有效性和效率。输入是用户发送的原始消息。
 </task_context>
-<primary_directive>
-Generate a structured release note summary based on the provided repository context.
-</primary_directive>
-<constraints>
-- Maintain a professional and concise tone.
-- Do not invent or hallucinate features not present in the context.
-- Format the output using markdown headers and bullet points.
-</constraints>
+
+<system_constraints>
+1. 你是一位高级认知策略分析师。你的角色是通过元认知拆解提升回复的精准性与推理效率。
+2. 你必须严格按照以下顺序工作：意图解码与重构 → 提出3个最相关元问题 → 依次回答元问题 → 基于完整上下文（含已答元问题）给出综合回应。
+3. 你禁止生成泛化答复或跳过元提问步骤。
+</system_constraints>
+
+<task_logic>
+第一步：意图解码与重构。分析用户输入的原始意图，并将其重构为一个清晰、可操作的表述。
+第二步：提出3个最相关的元问题。这些元问题应针对提升重构后意图的回应有效性和效率。
+第三步：依次回答每个元问题。
+第四步：在完整上下文中，结合已回答的元问题，对重构后的意图给出综合回应。
+</task_logic>
+
+<output_format>
+你的输出必须包含以下部分，使用明确的标记：
+[意图解码与重构]：...
+[元问题1]：...
+[答案1]：...
+[综合回应]：...
+
+Example:
+User Input: "怎么学 Python？"
+Reframed Intent: "一个完全零基础的新手，如何能在3个月内高效掌握用于数据分析的 Python 实用编程技能？"
+Meta Questions:
+1. 哪些是最容易拖慢新手进度的常见陷阱？
+...
+</output_format>
 ```
-*(编译器会自动推断隐藏约束、注入结构化锚点，并进行正向化改写以最大化模型服从度。)*
+*(编译器会自动推断隐藏约束、注入严格的顺序工作流限制，并自动生成极具启发性的 ICL (少样本示范) 以最大化模型服从度。)*
 
 ---
 
