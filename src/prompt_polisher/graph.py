@@ -64,7 +64,11 @@ def build_graph(settings: Settings, llm: LLMClient) -> Any:
     graph.add_conditional_edges(
         "intent_sniffer",
         cast(Any, route_after_intent_sniffer),
-        {"safety_abort_gate": "safety_abort_gate", "compute_aware_router": "compute_aware_router", END: END},
+        {
+            "safety_abort_gate": "safety_abort_gate",
+            "compute_aware_router": "compute_aware_router",
+            END: END,
+        },
     )
 
     def route_after_compute_aware_router(s: GraphState) -> str:

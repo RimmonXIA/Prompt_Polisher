@@ -69,7 +69,7 @@ class UniversalLLMClient:
         self._settings = settings
         self._api_key = settings.resolved_api_key()
         self._base_url = settings.resolved_base_url()
-        
+
     def _resolve_model_name(self, model: str | None) -> str:
         resolved = model if model else self._settings.resolved_model()
         provider = self._settings.llm_provider

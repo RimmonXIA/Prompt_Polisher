@@ -189,6 +189,11 @@ def main(argv: list[str] | None = None) -> int:
 
     other_g = parser.add_argument_group("Other")
     other_g.add_argument(
+        "--pro",
+        action="store_true",
+        help="Use pro model (e.g. deepseek-v4-pro) instead of the default flash model",
+    )
+    other_g.add_argument(
         "-V",
         "--version",
         action="store_true",
@@ -251,6 +256,11 @@ def main(argv: list[str] | None = None) -> int:
     if not args.verbose:
         _dampen_http_client_loggers()
     settings.apply_langchain_env()
+
+    if args.pro:
+        if settings.llm_model is None:
+            settings.deepseek_model = "deepseek-v4-pro"
+            settings.openai_model = "gpt-4o"
 
     raw: str | None = args.prompt
     if args.file is not None:

@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     openai_api_base: str | None = Field(default=None, alias="OPENAI_API_BASE")
 
     openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
-    deepseek_model: str = Field(default="deepseek-v4-pro", alias="DEEPSEEK_MODEL")
+    deepseek_model: str = Field(default="deepseek-v4-flash", alias="DEEPSEEK_MODEL")
     llm_model: str | None = Field(default=None, alias="LLM_MODEL")
 
     llm_temperature: float = Field(default=0.2, alias="LLM_TEMPERATURE", ge=0.0, le=2.0)

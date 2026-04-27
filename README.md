@@ -75,6 +75,9 @@ cp .env.example .env   # Edit API keys (OpenAI, DeepSeek, Claude, Gemini, etc.)
 # Basic: Get the compiled prompt
 uv run prompt-polisher "Summarize this repo for a release note"
 
+# Fine-grained: Use the pro model for complex reasoning
+uv run prompt-polisher --pro "Your complex requirement"
+
 # Professional: Get a Markdown report with full audit trail
 uv run prompt-polisher -m "Your requirement"
 
@@ -165,7 +168,7 @@ Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: [
 ### Configuration
 Key settings in your `.env`:
 - `LLM_PROVIDER`: `deepseek` (default), `openai`, `anthropic`, `google`, `zhipu`, `aliyun`, etc.
-- `LLM_MODEL`: Target model (e.g., `deepseek-v4-pro`, `gpt-4o-mini`, `claude-3-5-sonnet-20240620`).
+- `LLM_MODEL`: Target model (e.g., `deepseek-v4-flash`, `deepseek-v4-pro`, `gpt-4o-mini`).
 - `LLM_API_KEY`: Universal API key. Still supports `OPENAI_API_KEY`, etc.
 - `AUTHOR_TRUST_MODE`: Set to `true` to disable strict safety gates for known authors.
 - `CRITIC_USE_PRM`: Enable optional scalar-based process reward gating (heuristic).

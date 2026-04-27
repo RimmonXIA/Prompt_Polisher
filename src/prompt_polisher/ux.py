@@ -255,7 +255,7 @@ class SessionRenderer:
                 f"详情: {fatal_reason}\n建议: 请检查 config.py 配置或验证您的 API 密钥与模型名称。",
                 title="🚨 API 连接中断",
                 border_style="red",
-                padding=(1, 2)
+                padding=(1, 2),
             )
             self._console.print(panel)
             self._console.print()

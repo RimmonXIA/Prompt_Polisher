@@ -19,7 +19,7 @@ def test_resolved_model_global_default(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
     s = get_settings()
     assert s.llm_provider == "deepseek"
-    assert s.resolved_model() == "deepseek-v4-pro"
+    assert s.resolved_model() == "deepseek-v4-flash"
 
 
 def test_author_trust_mode_defaults_true(monkeypatch: pytest.MonkeyPatch) -> None:

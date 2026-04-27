@@ -75,6 +75,9 @@ cp .env.example .env   # 填写 API Keys (OpenAI, DeepSeek, Claude, Gemini 等)
 # 基础模式: 直接获取编译后的 prompt
 uv run prompt-polisher "Summarize this repo for a release note"
 
+# 精细模式: 使用 pro 模型进行更深度的思考与改写
+uv run prompt-polisher --pro "你的复杂需求"
+
 # 专业模式: 获取包含完整审计轨迹的 Markdown 报告
 uv run prompt-polisher -m "你的原始需求"
 
@@ -162,7 +165,7 @@ uv run prompt-polisher-eval --output eval-report.json
 ### 核心配置 (Configuration)
 位于 `.env` 中的关键设置：
 - `LLM_PROVIDER`: `deepseek`（默认）、`openai`、`anthropic` 等。
-- `LLM_MODEL`: 目标模型名称（如 `deepseek-v4-pro`）。
+- `LLM_MODEL`: 目标模型名称（如 `deepseek-v4-flash`, `deepseek-v4-pro`）。
 - `LLM_API_KEY`: 通用 API 秘钥。
 - `AUTHOR_TRUST_MODE`: 设置为 `true` 可针对可信作者禁用严格的安全闸门。
 - `CRITIC_USE_PRM`: 启用可选的过程奖励评分门控。
