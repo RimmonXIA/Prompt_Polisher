@@ -14,6 +14,26 @@ class StructuralExpect(BaseModel):
 
 
 GoldType = Literal["none", "exact_match", "contains_all", "json_keys"]
+PromptType = Literal[
+    "system_prompt",
+    "user_task_prompt",
+    "agent_tool_prompt",
+    "json_extraction_prompt",
+    "coding_prompt",
+    "judge_prompt",
+    "image_prompt",
+    "conversation_prompt",
+    "unknown",
+]
+OptimizationTarget = Literal[
+    "concise",
+    "strict_format",
+    "reasoning",
+    "creative",
+    "agentic",
+    "small_model",
+    "general",
+]
 
 
 class GoldSpec(BaseModel):
@@ -39,6 +59,10 @@ class EvalItem(BaseModel):
     id: str
     user_intent: str
     tags: list[str] = Field(default_factory=list)
+    category: str = "uncategorized"
+    prompt_type: PromptType = "unknown"
+    optimization_target: OptimizationTarget = "general"
+    expected_failure_modes: list[str] = Field(default_factory=list)
     structural_expect: StructuralExpect | None = None
     gold: GoldSpec = Field(default_factory=lambda: GoldSpec(type="none"))
     executor_system: str | None = None

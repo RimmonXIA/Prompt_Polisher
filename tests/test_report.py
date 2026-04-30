@@ -58,15 +58,32 @@ def test_compilation_report_dict_json_roundtrip() -> None:
     state: GraphState = {
         "raw_prompt": "x",
         "final_prompt": "y",
+        "prompt_type": "coding_prompt",
+        "prompt_type_confidence": 0.82,
+        "optimization_target": "strict_format",
+        "execution_mode": "fast",
         "output_route": "dspy",
         "red_team_critic_passed": False,
         "red_team_critic_iterations": 2,
+        "llm_call_count": 4,
+        "nodes_executed": ["intent_sniffer", "compute_aware_router"],
+        "cost_signals": {"raw_prompt_chars": 1, "final_prompt_chars": 1},
+        "quality_signals": {"intent_preserved": True, "over_expansion_risk": "low"},
     }
     d = compilation_report_dict(state, include_summary=True, include_before_after=True)
     json.dumps(d)
     assert d["summary"] is not None
     assert d["before_after"] == {"raw_prompt": "x", "final_prompt": "y"}
     assert d["deliverables"]["output_route"] == "dspy"
+    assert d["runtime"]["prompt_type"] == "coding_prompt"
+    assert d["runtime"]["prompt_type_confidence"] == 0.82
+    assert d["runtime"]["optimization_target"] == "strict_format"
+    assert d["runtime"]["execution_mode"] == "fast"
+    assert d["runtime"]["llm_call_count"] == 4
+    assert d["runtime"]["nodes_executed"] == ["intent_sniffer", "compute_aware_router"]
+    assert d["summary"]["cost_signals"] == {"raw_prompt_chars": 1, "final_prompt_chars": 1}
+    assert d["runtime"]["quality_signals"]["intent_preserved"] is True
+    assert d["summary"]["quality_signals"]["over_expansion_risk"] == "low"
 
 
 def test_no_summary_omits_section() -> None:

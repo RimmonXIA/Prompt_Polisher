@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel
 
@@ -14,6 +14,7 @@ from prompt_polisher.state import (
     CompileDraft,
     CriticFeedback,
     GraphState,
+    OptimizationTarget,
     OutputRoute,
     RouterDeliverable,
     RoutingDecision,
@@ -24,6 +25,65 @@ from prompt_polisher.text import looks_like_injection, preview_text, strip_code_
 logger = logging.getLogger(__name__)
 
 _M = TypeVar("_M", bound=BaseModel)
+
+
+def _safe_float(v: object, default: float = 0.0) -> float:
+    try:
+        return float(v)  # type: ignore[arg-type]
+    except Exception:
+        return default
+
+
+def _coerce_optimization_target(
+    v: object,
+    default: OptimizationTarget = "general",
+) -> OptimizationTarget:
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in {
+            "concise",
+            "strict_format",
+            "reasoning",
+            "creative",
+            "agentic",
+            "small_model",
+            "general",
+        }:
+            return cast(OptimizationTarget, s)
+    return default
+
+
+def _compile_strategy_block(prompt_type: str, optimization_target: str) -> str:
+    base = (
+        f"PromptType={prompt_type}\n"
+        f"OptimizationTarget={optimization_target}\n"
+        "Apply the following strategy constraints while preserving user intent."
+    )
+    if prompt_type == "json_extraction_prompt":
+        return (
+            f"{base}\n"
+            "- JSON-only output contract: forbid prose outside JSON.\n"
+            "- Require explicit key schema and missing/null policy.\n"
+            "- Enforce deterministic field naming and type hints."
+        )
+    if prompt_type == "coding_prompt":
+        return (
+            f"{base}\n"
+            "- Prefer minimal-change implementation guidance over broad rewrites.\n"
+            "- Require verification steps (tests, lint, typecheck, or runtime checks).\n"
+            "- Preserve constraints and acceptance criteria before style concerns."
+        )
+    if prompt_type == "agent_tool_prompt":
+        return (
+            f"{base}\n"
+            "- Define tool boundaries: what tools can and cannot be used.\n"
+            "- Require explicit stop conditions to avoid loops.\n"
+            "- Include error-handling and recovery expectations for failed tool calls."
+        )
+    return (
+        f"{base}\n"
+        "- Use general compilation strategy with clear sections and executable constraints."
+    )
 
 
 def _system_user(
@@ -99,11 +159,18 @@ async def node_compute_aware_router(
 ) -> dict[str, Any]:
     if state.get("fatal_error"):
         return {}
+    requested_target: OptimizationTarget = _coerce_optimization_target(
+        state.get("optimization_target"),
+        settings.optimization_target,
+    )
     sniffer = state.get("intent_sniffer_analysis") or {}
     bundle = prompt_bundle(settings)
     system = bundle.routing_system(settings.author_trust_mode)
     sniffer_json = json.dumps(sniffer, ensure_ascii=False)
-    user = bundle.routing_user(sniffer_json, state["raw_prompt"])
+    user = (
+        f"{bundle.routing_user(sniffer_json, state['raw_prompt'])}\n\n"
+        f"Requested optimization target: {requested_target}"
+    )
     if settings.log_prompt_previews:
         logger.info("routing input preview: %s", preview_text(user))
     try:
@@ -120,8 +187,19 @@ async def node_compute_aware_router(
             anchor_persona="careful expert assistant",
             audience_anchor="general public",
             rationale=preview_text(text, 400),
+            prompt_type="unknown",
+            prompt_type_confidence=0.0,
+            optimization_target=requested_target,
         )
-    return {"compute_aware_routing_decision": parsed.model_dump()}
+    else:
+        # Explicit user-selected target should override model omission/default drift.
+        parsed.optimization_target = requested_target
+    return {
+        "compute_aware_routing_decision": parsed.model_dump(),
+        "prompt_type": parsed.prompt_type,
+        "prompt_type_confidence": parsed.prompt_type_confidence,
+        "optimization_target": parsed.optimization_target,
+    }
 
 
 async def node_structured_compiler(
@@ -132,13 +210,25 @@ async def node_structured_compiler(
     sniffer = state.get("intent_sniffer_analysis") or {}
     routing = state.get("compute_aware_routing_decision") or {}
     critic_fb = state.get("red_team_critic_feedback") or ""
+    prompt_type = str(state.get("prompt_type") or routing.get("prompt_type") or "unknown")
+    optimization_target = _coerce_optimization_target(
+        state.get("optimization_target") or routing.get("optimization_target"),
+        settings.optimization_target,
+    )
     bundle = prompt_bundle(settings)
-    system = bundle.compile_system(settings.author_trust_mode)
+    system = (
+        f"{bundle.compile_system(settings.author_trust_mode)}\n\n"
+        "[TYPE-SPECIFIC COMPILATION STRATEGY]\n"
+        f"{_compile_strategy_block(prompt_type, optimization_target)}"
+    )
     payload = {
         "sniffer": sniffer,
         "routing": routing,
         "red_team_critic_feedback": critic_fb,
         "raw_prompt": state["raw_prompt"],
+        "prompt_type": prompt_type,
+        "optimization_target": optimization_target,
+        "strategy_hints": _compile_strategy_block(prompt_type, optimization_target),
     }
     user = f"Compile from:\n{json.dumps(payload, ensure_ascii=False)}"
     if settings.log_prompt_previews:
@@ -305,4 +395,11 @@ async def node_artifact_dispatcher(
         "workflow_blueprint": parsed.workflow_blueprint,
         "dspy_sketch": parsed.dspy_sketch,
         "red_team_critic_halted_max": halted,
+        "prompt_type": str(routing.get("prompt_type") or "unknown"),
+        "prompt_type_confidence": _safe_float(routing.get("prompt_type_confidence"), 0.0),
+        "optimization_target": str(
+            routing.get("optimization_target")
+            or state.get("optimization_target")
+            or "general"
+        ),
     }

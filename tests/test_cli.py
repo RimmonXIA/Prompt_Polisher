@@ -37,6 +37,13 @@ def _happy_state() -> GraphState:
         "raw_prompt": "x",
         "final_prompt": "compiled",
         "compilation_aborted": False,
+        "prompt_type": "coding_prompt",
+        "prompt_type_confidence": 0.88,
+        "optimization_target": "strict_format",
+        "llm_call_count": 3,
+        "nodes_executed": ["intent_sniffer", "compute_aware_router", "structured_compiler"],
+        "cost_signals": {"raw_prompt_chars": 1, "final_prompt_chars": 8},
+        "quality_signals": {"intent_preserved": True, "over_expansion_risk": "low"},
         "intent_sniffer_analysis": {},
         "compute_aware_routing_decision": {},
         "output_route": "instance",
@@ -113,8 +120,20 @@ def test_envelope_ok_and_schema(
     out = json.loads(capsys.readouterr().out)
     assert out["compiled"] is True
     assert out["version"] == cli.ENVELOPE_SCHEMA_VERSION
+    assert out["mode"] == "balanced"
+    assert out["optimization_target"] == "strict_format"
+    assert out["prompt_type"] == "coding_prompt"
+    assert out["llm_call_count"] == 3
+    assert out["nodes_executed"] == [
+        "intent_sniffer",
+        "compute_aware_router",
+        "structured_compiler",
+    ]
+    assert out["cost_signals"]["final_prompt_chars"] == 8
+    assert out["quality_signals"]["intent_preserved"] is True
     assert out["abort_reason"] is None
     assert "deliverables" in out["report"]
+    assert "runtime" in out["report"]
 
 
 def test_envelope_aborted_ok_false_and_error(
@@ -240,3 +259,128 @@ def test_agent_card_exits_zero_and_valid_json(
     assert card["skills"][0]["id"] == "prompt-compile"
     assert card["supportedInterfaces"] == []
     assert card["capabilities"]["streaming"] is False
+
+
+def test_compare_json_success_with_judge(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_llm = MagicMock()
+    fake_llm.chat.side_effect = [
+        "raw-output",
+        "compiled-output",
+        '{"verdict":"polished_wins","rationale":"better structured"}',
+    ]
+    monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
+    code = cli.main(
+        [
+            "compare",
+            "--raw",
+            "raw prompt",
+            "--task-input",
+            "task input",
+            "--json",
+        ]
+    )
+    assert code == cli.EXIT_SUCCESS
+    out = json.loads(capsys.readouterr().out)
+    assert out["compiled_available"] is True
+    assert out["compiled_prompt_type"] == "coding_prompt"
+    assert out["compiled_optimization_target"] == "strict_format"
+    assert out["compiled_llm_call_count"] == 3
+    assert out["compiled_nodes_executed"] == [
+        "intent_sniffer",
+        "compute_aware_router",
+        "structured_compiler",
+    ]
+    assert out["compiled_cost_signals"]["raw_prompt_chars"] == 1
+    assert out["compiled_quality_signals"]["over_expansion_risk"] == "low"
+    assert out["raw_output"] == "raw-output"
+    assert out["compiled_output"] == "compiled-output"
+    assert out["judge"]["verdict"] == "polished_wins"
+    assert fake_llm.chat.call_count == 3
+
+
+def test_compare_structural_only_skips_judge(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_llm = MagicMock()
+    fake_llm.chat.side_effect = ["raw-output", "compiled-output"]
+    monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
+    code = cli.main(
+        [
+            "compare",
+            "--raw",
+            "raw prompt",
+            "--task-input",
+            "task input",
+            "--structural-only",
+            "--json",
+        ]
+    )
+    assert code == cli.EXIT_SUCCESS
+    out = json.loads(capsys.readouterr().out)
+    assert out["judge"] is None
+    assert fake_llm.chat.call_count == 2
+
+
+def test_envelope_mode_override(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_llm: MagicMock,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
+    monkeypatch.setattr(cli, "run_compiler_async", _async_happy)
+    code = cli.main(["--mode", "fast", "--envelope", "hi"])
+    assert code == cli.EXIT_SUCCESS
+    out = json.loads(capsys.readouterr().out)
+    assert out["mode"] == "fast"
+
+
+def test_envelope_target_override(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_llm: MagicMock,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    async def _async_no_target(*_a: object, **_k: object) -> GraphState:
+        return {
+            "raw_prompt": "x",
+            "final_prompt": "compiled",
+            "compilation_aborted": False,
+            "intent_sniffer_analysis": {},
+            "compute_aware_routing_decision": {},
+            "output_route": "instance",
+        }
+
+    monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
+    monkeypatch.setattr(cli, "run_compiler_async", _async_no_target)
+    code = cli.main(["--target", "concise", "--envelope", "hi"])
+    assert code == cli.EXIT_SUCCESS
+    out = json.loads(capsys.readouterr().out)
+    assert out["optimization_target"] == "concise"
+
+
+def test_compare_returns_abort_when_compile_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_llm = MagicMock()
+    monkeypatch.setattr(cli, "build_llm_client", lambda _s: fake_llm)
+    monkeypatch.setattr(cli, "run_compiler_async", _async_aborted)
+    code = cli.main(
+        [
+            "compare",
+            "--raw",
+            "raw prompt",
+            "--task-input",
+            "task input",
+            "--json",
+        ]
+    )
+    assert code == cli.EXIT_COMPILATION_ABORTED
+    out = json.loads(capsys.readouterr().out)
+    assert out["compiled_available"] is False
+    assert out["error"]["code"] == "COMPILATION_UNAVAILABLE"

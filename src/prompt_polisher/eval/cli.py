@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
@@ -11,7 +12,7 @@ from pathlib import Path
 from rich_argparse import RawDescriptionRichHelpFormatter
 
 from prompt_polisher.config import get_settings
-from prompt_polisher.eval.load import load_evalset, resolve_evalset_dir
+from prompt_polisher.eval.load import EvalSet, load_evalset, resolve_evalset_dir
 from prompt_polisher.eval.runner import run_eval_suite
 from prompt_polisher.llm import build_llm_client
 
@@ -82,6 +83,35 @@ def _package_version() -> str:
         return "0.0.0"
 
 
+def _slice_evalset(
+    evalset: EvalSet,
+    *,
+    id_regex: str | None,
+    max_items: int | None,
+) -> EvalSet:
+    items = list(evalset.items)
+
+    if id_regex:
+        try:
+            pattern = re.compile(id_regex)
+        except re.error as exc:
+            msg = f"invalid --id-regex pattern: {exc}"
+            raise ValueError(msg) from exc
+        items = [item for item in items if pattern.search(item.id)]
+
+    if max_items is not None:
+        if max_items <= 0:
+            msg = "--max-items must be >= 1"
+            raise ValueError(msg)
+        items = items[:max_items]
+
+    if not items:
+        msg = "no eval items selected (check --id-regex / --max-items)"
+        raise ValueError(msg)
+
+    return EvalSet(manifest=evalset.manifest, items=items, source_dir=evalset.source_dir)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="prompt-polisher-eval",
@@ -105,6 +135,19 @@ def main(argv: list[str] | None = None) -> int:
         "--structural-only",
         action="store_true",
         help="Skip Tier B: no executor LLM calls (only compile graph + structural checks)",
+    )
+    run_g.add_argument(
+        "--id-regex",
+        default=None,
+        metavar="REGEX",
+        help="Run only items whose id matches REGEX",
+    )
+    run_g.add_argument(
+        "--max-items",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Run only the first N items after filtering",
     )
     run_g.add_argument(
         "-v",
@@ -165,6 +208,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         evalset = load_evalset(evalset_dir)
+        total_items = len(evalset.items)
+        evalset = _slice_evalset(
+            evalset,
+            id_regex=args.id_regex,
+            max_items=args.max_items,
+        )
     except (OSError, ValueError) as exc:
         print(f"prompt-polisher-eval: {exc}", file=sys.stderr)
         return 1
@@ -180,7 +229,9 @@ def main(argv: list[str] | None = None) -> int:
         mode = "structural-only" if args.structural_only else "full"
         n = len(evalset.items)
         print(
-            f"prompt-polisher-eval: starting {n} item(s), mode={mode!r}. JSON on stdout when done.",
+            "prompt-polisher-eval: starting "
+            f"{n} item(s) selected from {total_items}, mode={mode!r}. "
+            "JSON on stdout when done.",
             file=sys.stderr,
         )
 
@@ -196,6 +247,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     data = report.to_json_dict()
+    data["selection"] = {
+        "total_items": total_items,
+        "selected_items": len(evalset.items),
+        "id_regex": args.id_regex,
+        "max_items": args.max_items,
+    }
     text = json.dumps(data, ensure_ascii=False, indent=2)
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -2,11 +2,22 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ProviderName = str
+ExecutionMode = Literal["fast", "balanced", "pro"]
+OptimizationTarget = Literal[
+    "concise",
+    "strict_format",
+    "reasoning",
+    "creative",
+    "agentic",
+    "small_model",
+    "general",
+]
 
 
 class Settings(BaseSettings):
@@ -31,6 +42,10 @@ class Settings(BaseSettings):
 
     llm_temperature: float = Field(default=0.2, alias="LLM_TEMPERATURE", ge=0.0, le=2.0)
     max_critic_iterations: int = Field(default=3, alias="MAX_CRITIC_ITERATIONS", ge=1, le=20)
+    execution_mode: ExecutionMode = Field(default="balanced", alias="EXECUTION_MODE")
+    optimization_target: OptimizationTarget = Field(
+        default="general", alias="OPTIMIZATION_TARGET"
+    )
 
     critic_use_prm: bool = Field(default=False, alias="CRITIC_USE_PRM")
     prm_model: str | None = Field(default=None, alias="PRM_MODEL")
@@ -63,6 +78,39 @@ class Settings(BaseSettings):
     def _lower_provider(cls, v: object) -> object:
         if isinstance(v, str):
             return v.lower().strip()
+        return v
+
+    @field_validator("execution_mode", mode="before")
+    @classmethod
+    def _normalize_execution_mode(cls, v: object) -> object:
+        if isinstance(v, str):
+            s = v.lower().strip()
+            if s in {"fast", "balanced", "pro"}:
+                return s
+            msg = f"EXECUTION_MODE must be one of: fast, balanced, pro (got {v!r})"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("optimization_target", mode="before")
+    @classmethod
+    def _normalize_optimization_target(cls, v: object) -> object:
+        if isinstance(v, str):
+            s = v.lower().strip()
+            if s in {
+                "concise",
+                "strict_format",
+                "reasoning",
+                "creative",
+                "agentic",
+                "small_model",
+                "general",
+            }:
+                return s
+            msg = (
+                "OPTIMIZATION_TARGET must be one of: concise, strict_format, reasoning, "
+                f"creative, agentic, small_model, general (got {v!r})"
+            )
+            raise ValueError(msg)
         return v
 
     @field_validator("prompts_dir", mode="before")

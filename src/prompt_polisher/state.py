@@ -5,6 +5,26 @@ from typing import Literal, TypedDict
 from pydantic import BaseModel, Field
 
 OutputRoute = Literal["instance", "template", "dspy"]
+PromptType = Literal[
+    "system_prompt",
+    "user_task_prompt",
+    "agent_tool_prompt",
+    "json_extraction_prompt",
+    "coding_prompt",
+    "judge_prompt",
+    "image_prompt",
+    "conversation_prompt",
+    "unknown",
+]
+OptimizationTarget = Literal[
+    "concise",
+    "strict_format",
+    "reasoning",
+    "creative",
+    "agentic",
+    "small_model",
+    "general",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +82,20 @@ class RoutingDecision(BaseModel):
             "constraints as first-person self-commitments about yourself. Avoid internal "
             "routing or compiler jargon."
         )
+    )
+    prompt_type: PromptType = Field(
+        default="unknown",
+        description="Detected prompt type to guide downstream strategy selection.",
+    )
+    prompt_type_confidence: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for prompt_type classification.",
+    )
+    optimization_target: OptimizationTarget = Field(
+        default="general",
+        description="Requested optimization target for downstream compile strategy.",
     )
 
 
@@ -125,6 +159,9 @@ class GraphState(TypedDict, total=False):
     # node boundary for validation, then converted via .model_dump().
     intent_sniffer_analysis: dict[str, object]
     compute_aware_routing_decision: dict[str, object]
+    prompt_type: str
+    prompt_type_confidence: float
+    optimization_target: str
 
     compiler_draft: str
     # Reducer: critic feedback history accumulates across retries (list join)
@@ -145,3 +182,10 @@ class GraphState(TypedDict, total=False):
 
     fatal_error: bool
     fatal_error_reason: str
+
+    # Runtime instrumentation (Phase 2)
+    execution_mode: str
+    llm_call_count: int
+    nodes_executed: list[str]
+    cost_signals: dict[str, object]
+    quality_signals: dict[str, object]

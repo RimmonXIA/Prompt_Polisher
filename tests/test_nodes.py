@@ -8,6 +8,7 @@ import pytest
 from prompt_polisher.config import get_settings
 from prompt_polisher.llm import FakeLLMClient
 from prompt_polisher.nodes import (
+    _compile_strategy_block,
     node_artifact_dispatcher,
     node_compute_aware_router,
     node_intent_sniffer,
@@ -170,3 +171,54 @@ def test_node_structured_compiler_fallback(monkeypatch: pytest.MonkeyPatch) -> N
     state = {"raw_prompt": "orig"}
     out = asyncio.run(node_structured_compiler(state, llm, settings))  # type: ignore[arg-type]
     assert "plain text" in out["compiler_draft"]
+
+
+def test_compile_strategy_block_covers_target_prompt_types() -> None:
+    json_block = _compile_strategy_block("json_extraction_prompt", "strict_format")
+    assert "JSON-only output contract" in json_block
+    coding_block = _compile_strategy_block("coding_prompt", "reasoning")
+    assert "minimal-change implementation guidance" in coding_block
+    agent_block = _compile_strategy_block("agent_tool_prompt", "agentic")
+    assert "Define tool boundaries" in agent_block
+
+
+class _CapturingFakeLLM(FakeLLMClient):
+    def __init__(self, responses: list[str]) -> None:
+        super().__init__(responses)
+        self.last_messages: list[dict[str, str]] | None = None
+
+    async def achat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        temperature: float | None = None,
+        model: str | None = None,
+    ) -> str:
+        self.last_messages = messages
+        return await super().achat(messages, temperature=temperature, model=model)
+
+
+def test_node_structured_compiler_injects_type_specific_strategy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    get_settings.cache_clear()
+    settings = get_settings()
+    llm = _CapturingFakeLLM(['{"draft":"compiled"}'])
+    state = {
+        "raw_prompt": "Extract fields",
+        "compute_aware_routing_decision": {
+            "prompt_type": "json_extraction_prompt",
+            "optimization_target": "strict_format",
+        },
+        "prompt_type": "json_extraction_prompt",
+        "optimization_target": "strict_format",
+    }
+    out = asyncio.run(node_structured_compiler(state, llm, settings))  # type: ignore[arg-type]
+    assert out["compiler_draft"] == "compiled"
+    assert llm.last_messages is not None
+    system_msg = llm.last_messages[0]["content"]
+    user_msg = llm.last_messages[1]["content"]
+    assert "[TYPE-SPECIFIC COMPILATION STRATEGY]" in system_msg
+    assert "JSON-only output contract" in system_msg
+    assert '"strategy_hints"' in user_msg

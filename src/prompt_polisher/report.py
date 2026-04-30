@@ -26,6 +26,21 @@ class _ReportParts:
     compilation_aborted: bool
     abort_reason: str
     abort_detail: str
+    prompt_type: str
+    prompt_type_confidence: float
+    optimization_target: str
+    execution_mode: str
+    llm_call_count: int
+    nodes_executed: list[str]
+    cost_signals: dict[str, object]
+    quality_signals: dict[str, object]
+
+
+def _safe_float(v: object, default: float = 0.0) -> float:
+    try:
+        return float(v)  # type: ignore[arg-type]
+    except Exception:
+        return default
 
 
 def _parts_from_state(state: GraphState) -> _ReportParts:
@@ -46,6 +61,27 @@ def _parts_from_state(state: GraphState) -> _ReportParts:
         compilation_aborted=bool(state.get("compilation_aborted")),
         abort_reason=str(state.get("abort_reason") or "").strip(),
         abort_detail=str(state.get("abort_detail") or "").strip(),
+        prompt_type=str(
+            state.get("prompt_type")
+            or (state.get("compute_aware_routing_decision") or {}).get("prompt_type")
+            or "unknown"
+        ),
+        prompt_type_confidence=_safe_float(
+            state.get("prompt_type_confidence")
+            or (state.get("compute_aware_routing_decision") or {}).get("prompt_type_confidence")
+            or 0.0,
+            0.0,
+        ),
+        optimization_target=str(
+            state.get("optimization_target")
+            or (state.get("compute_aware_routing_decision") or {}).get("optimization_target")
+            or "general"
+        ),
+        execution_mode=str(state.get("execution_mode") or "balanced"),
+        llm_call_count=int(state.get("llm_call_count") or 0),
+        nodes_executed=list(state.get("nodes_executed") or []),
+        cost_signals=dict(state.get("cost_signals") or {}),
+        quality_signals=dict(state.get("quality_signals") or {}),
     )
 
 
@@ -86,6 +122,8 @@ def compilation_report_dict(
         settings_dict = {
             "llm_provider": settings.llm_provider,
             "model": settings.resolved_model(),
+            "execution_mode": settings.execution_mode,
+            "optimization_target": settings.optimization_target,
             "api_base_url": settings.resolved_base_url(),
             "llm_temperature": settings.llm_temperature,
             "max_red_team_critic_iterations": settings.max_critic_iterations,
@@ -94,6 +132,16 @@ def compilation_report_dict(
         "summary": None,
         "before_after": None,
         "settings": settings_dict,
+        "runtime": {
+            "prompt_type": p.prompt_type,
+            "prompt_type_confidence": p.prompt_type_confidence,
+            "optimization_target": p.optimization_target,
+            "execution_mode": p.execution_mode,
+            "llm_call_count": p.llm_call_count,
+            "nodes_executed": p.nodes_executed,
+            "cost_signals": p.cost_signals,
+            "quality_signals": p.quality_signals,
+        },
         "intent_sniffer_analysis": p.sniffer,
         "compute_aware_routing_decision": p.routing,
         "critic": {
@@ -124,6 +172,14 @@ def compilation_report_dict(
             "threats": p.sniffer.get("threats"),
             "complexity": p.routing.get("complexity"),
             "multi_node_recommended": p.routing.get("multi_node_recommended"),
+            "prompt_type": p.prompt_type,
+            "prompt_type_confidence": p.prompt_type_confidence,
+            "optimization_target": p.optimization_target,
+            "execution_mode": p.execution_mode,
+            "llm_call_count": p.llm_call_count,
+            "nodes_executed": p.nodes_executed,
+            "cost_signals": p.cost_signals,
+            "quality_signals": p.quality_signals,
         }
     if include_before_after:
         out["before_after"] = {"raw_prompt": p.raw, "final_prompt": p.final}
@@ -150,10 +206,18 @@ def render_compilation_report(
             if p.abort_detail:
                 lines.append(_bullet_line("Abort detail", p.abort_detail))
         lines.append(_bullet_line("Output route", p.route))
+        lines.append(_bullet_line("Prompt type", p.prompt_type))
+        lines.append(_bullet_line("Prompt type confidence", f"{p.prompt_type_confidence:.2f}"))
+        lines.append(_bullet_line("Optimization target", p.optimization_target))
+        lines.append(_bullet_line("Execution mode", p.execution_mode))
         lines.append(_bullet_line("Critic passed", p.red_team_critic_passed))
         lines.append(_bullet_line("Critic iterations", p.critic_iters))
         lines.append(_bullet_line("PRM score (if used)", p.prm_score))
         lines.append(_bullet_line("Stopped at max critic iterations", p.halted))
+        lines.append(_bullet_line("LLM call count", p.llm_call_count))
+        lines.append(_bullet_line("Nodes executed", len(p.nodes_executed)))
+        if p.quality_signals:
+            lines.append(_bullet_line("Quality signals", p.quality_signals))
         lines.append("")
 
     lines.append("---")

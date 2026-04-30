@@ -1,9 +1,9 @@
 # Prompt Polisher: The Compiler for LLM Prompts
 
-[![CI](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml/badge.svg)](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![A2A Compliant](https://img.shields.io/badge/A2A-Compliant-success.svg)](https://github.com/a2aproject/A2A)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[CI](https://github.com/RimmonXIA/Prompt_Polisher/actions/workflows/ci.yml)
+[Python 3.11+](https://www.python.org/downloads/)
+[A2A Compliant](https://github.com/a2aproject/A2A)
+[License: MIT](LICENSE)
 
 🌐 English | [简体中文](./README.zh.md)
 
@@ -18,9 +18,11 @@ A **multi-node LangGraph compiler** that turns rough intent into structured, saf
 Stop wrestling with models that ignore your constraints or hallucinate formats.
 
 **Before (Rough, stream-of-consciousness intent):**
+
 > "Decode the user's raw input and reframe the intent, then find the 3 most relevant meta-questions to improve the response. Answer those meta-questions first, then respond to the reframed intent in the full context..."
 
 **After (Compiled by Prompt Polisher Pro):**
+
 ```xml
 [GOLDEN DRAFT - PRIORITIZE] <task_context>
 This task involves processing a user's raw query through a cognitive enhancement pipeline. The goal is to produce a response that is not only directly aligned with the user's deeper intent but also strengthened by a preliminary meta-analysis...
@@ -54,6 +56,7 @@ Meta Questions:
 ...
 </output_format>
 ```
+
 *(The compiler automatically infers constraints, injects strict sequential workflows, and generates highly relevant In-Context Learning examples (Few-shots) to maximize cognitive compliance.)*
 
 ---
@@ -63,16 +66,19 @@ Meta Questions:
 Most prompts fail because they lack structure, trigger negative constraints, or exhaust the model's reasoning limit. Prompt Polisher intervenes across three core pillars:
 
 ### ⚡️ High-Performance (Cognitive Optimization)
+
 - **Attention Management**: Combats the "Lost in the Middle" effect by reinforcing instructions at **Head/Tail** positions and applying **Anchor Personas** to stabilize style and detail.
 - **Compute-Optimized**: Injects `<task_context>` blocks and ICL (In-Context Learning) few-shots to trade sequence length for reasoning quality. 
 - **Style Enhancement**: Actively detects low-entropy inputs and intervenes via vocabulary elevation and structural priming to ensure the target model mirrors expert-level cognitive standards.
 
 ### 🛡️ Built-in Safety & Compliance
+
 - **Threat Radar**: A heuristic pre-scan augments a model-based Intent Sniffer to detect prompt injections and alignment violations before execution.
 - **Sandboxed Execution**: Uses **XML Sandboxing** for strict instruction isolation.
 - **Quality Control**: Supports optional automated output scoring (process-level quality gating) to reject sub-par completions before they reach your users.
 
 ### 🔌 Developer & Agent Native
+
 - **Multi-Track Artifacts**: Emits finalized prompts, **LangGraph blueprints**, and **DSPy sketches** for downstream automation. 
 - **A2A Protocol Ready**: Designed as a spec-compliant **A2A Participant** with full JSON-RPC and SSE support.
 - **Provider-Agnostic**: Internal routing uses **LiteLLM**, providing a single configuration surface for OpenAI, Anthropic, Gemini, DeepSeek, and more.
@@ -82,6 +88,7 @@ Most prompts fail because they lack structure, trigger negative constraints, or 
 ## ⚡ Quickstart
 
 ### 1. Setup
+
 ```bash
 # Sync dependencies
 uv sync --all-groups
@@ -91,6 +98,7 @@ cp .env.example .env   # Edit API keys (OpenAI, DeepSeek, Claude, Gemini, etc.)
 ```
 
 ### 2. Usage
+
 ```bash
 # Basic: Get the compiled prompt
 uv run prompt-polisher "Summarize this repo for a release note"
@@ -98,19 +106,29 @@ uv run prompt-polisher "Summarize this repo for a release note"
 # Fine-grained: Use the pro model for complex reasoning
 uv run prompt-polisher --pro "Your complex requirement"
 
+# Execution mode: fast skips critic loop for lower latency/cost
+uv run prompt-polisher --mode fast "Your requirement"
+
 # Professional: Get a Markdown report with full audit trail
 uv run prompt-polisher -m "Your requirement"
 
 # Agent-Ready: Output as a versioned JSON envelope
 uv run prompt-polisher --envelope "Your requirement"
 
+# Goal-aware optimization target
+uv run prompt-polisher --target strict_format "Extract fields as JSON"
+
+# Compare mode: raw vs compiled prompt on one task input
+uv run prompt-polisher compare --raw "Your draft prompt" --task-input "Concrete task input" --json
+
 # Service Mode: Launch A2A HTTP Server
 uv run prompt-polisher --serve --port 8000
 ```
 
 ### 3. Example reports & library use
-- **Sample outputs**: [examples/](examples/README.md) covers a normal run, a **threat-gate abort**, and a **multi-node routing** hint.
-- **Embed in Python**: Call [`run_compiler_async`](src/prompt_polisher/graph.py) with your `Settings` and [`LLMClient`](src/prompt_polisher/llm.py). Code-accurate sequence and state flow: **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**.
+
+- **Sample outputs**: [examples/](examples/README.md) covers happy path, fast path, threat-gate abort, and compare JSON shape.
+- **Embed in Python**: Call `[run_compiler_async](src/prompt_polisher/graph.py)` with your `Settings` and `[LLMClient](src/prompt_polisher/llm.py)`. Code-accurate sequence and state flow: **[docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md)**.
 
 ---
 
@@ -149,44 +167,68 @@ graph LR
     class Discovery,JSONRPC output;
 ```
 
+
+
 ---
 
 ## 🛠️ Developer & Automation Guide
 
 ### CLI as Tool Protocol
+
 For scripts and coding agents (Cursor, Windsurf, custom workers), treat the CLI as a protocol:
+
 - **stdout**: Carries the primary payload (Text, Markdown, or JSON).
 - **stderr**: Carries logs and diagnostic info (use `--quiet` to minimize noise).
 - **Interactive TTY**: stderr prints a Rich splash panel with a terminal-width-aware preview of your input.
 
 #### Exit Codes (Stable for Automation)
-| Code | Meaning |
-| --- | --- |
-| `0` | Success: Compilation finished without being aborted by the safety gate. |
-| `2` | Aborted: Run finished but compilation was stopped by the safety gate. |
-| `1` | Error: Misconfiguration, I/O failure, or invalid CLI usage. |
+
+
+| Code | Meaning                                                                 |
+| ---- | ----------------------------------------------------------------------- |
+| `0`  | Success: Compilation finished without being aborted by the safety gate. |
+| `2`  | Aborted: Run finished but compilation was stopped by the safety gate.   |
+| `1`  | Error: Misconfiguration, I/O failure, or invalid CLI usage.             |
+
 
 #### Envelope Shape (`--envelope`)
-The standard JSON envelope includes:
+
+The standard JSON envelope (v2) includes:
+
 - `compiled`: `true` if and only if the safety gate did not abort.
-- `version`: Currently `1`.
+- `version`: Currently `2`.
+- `mode`: `fast | balanced | pro`.
+- `prompt_type`: detected prompt type (or `unknown`).
+- `optimization_target`: requested or routed optimization target.
+- `llm_call_count`: total model calls used during this compile.
+- `nodes_executed`: node execution trace for this compile.
+- `quality_signals`: intent/over-expansion quality heuristics.
+- `cost_signals`: lightweight char-based cost signals.
 - `report`: The full compilation report.
 - `abort_reason`: `null` on success, or an object with `code`, `message`, and `detail`.
 
 ### Evaluation harness
+
 Versioned tasks under `evalsets/bundled/` with Tier A structural checks and optional Tier B executor scoring.
+
 ```bash
 uv run prompt-polisher-eval --help
 uv run prompt-polisher-eval --structural-only --fail-on-structural
 uv run prompt-polisher-eval --output eval-report.json
+
+# Faster local loop: run a filtered subset
+uv run prompt-polisher-eval --structural-only --id-regex "^smoke|^gate-" --max-items 5 -v
 ```
-Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: [`evalsets/bundled/README.md`](evalsets/bundled/README.md).
+
+Override directory with `PROMPT_POLISHER_EVALSET` or `--evalset-dir`. Details: `[evalsets/bundled/README.md](evalsets/bundled/README.md)`.
 
 > [!TIP]
 > Set `PROMPT_POLISHER_AGENT=1` in your environment to default to `--envelope` output for all calls.
 
 ### Configuration
+
 Key settings in your `.env`:
+
 - `LLM_PROVIDER`: `deepseek` (default), `openai`, `anthropic`, `google`, `zhipu`, `aliyun`, etc.
 - `LLM_MODEL`: Target model (e.g., `deepseek-v4-flash`, `deepseek-v4-pro`, `gpt-4o-mini`).
 - `LLM_API_KEY`: Universal API key. Still supports `OPENAI_API_KEY`, etc.
@@ -213,11 +255,13 @@ Prompt Polisher is a [Full A2A Participant](https://github.com/a2aproject/A2A) (
 
 For architecture details, roles taxonomy (Invoker, Orchestrator, Executor), and theoretical frameworks, refer to the documentation:
 
-| Language | Artifact | Scope |
-| --- | --- | --- |
-| **English** | [docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md) | **Architecture Bridge**: Core philosophy, strict boundaries, and compilation pipeline. |
-| **English** | [docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md) | **Implementation Map**: Mermaid views of CLI → graph → API. |
-| **Chinese (Only)** | [docs/THEORY.zh.md](docs/THEORY.zh.md) | **Deep Dive**: Full academic theory, evidence grades, and mechanistic details. |
+
+| Language           | Artifact                                                   | Scope                                                                                  |
+| ------------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **English**        | [docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md)         | **Architecture Bridge**: Core philosophy, strict boundaries, and compilation pipeline. |
+| **English**        | [docs/CLI_INVOCATION_FLOW.md](docs/CLI_INVOCATION_FLOW.md) | **Implementation Map**: Mermaid views of CLI → graph → API.                            |
+| **Chinese (Only)** | [docs/THEORY.zh.md](docs/THEORY.zh.md)                     | **Deep Dive**: Full academic theory, evidence grades, and mechanistic details.         |
+
 
 ---
 

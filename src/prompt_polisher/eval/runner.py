@@ -45,6 +45,10 @@ class ArmResult:
 class ExampleReport:
     item_id: str
     tags: list[str]
+    category: str
+    prompt_type: str
+    optimization_target: str
+    expected_failure_modes: list[str]
     structural: dict[str, Any]
     structural_mismatches: list[str]
     structural_expect_passed: bool
@@ -65,6 +69,11 @@ class SuiteReport:
 
     def to_json_dict(self) -> dict[str, Any]:
         tier_a_passed = sum(1 for e in self.examples if e.structural_expect_passed)
+        by_category = _group_counts(self.examples, key=lambda e: e.category)
+        by_prompt_type = _group_counts(self.examples, key=lambda e: e.prompt_type)
+        by_optimization_target = _group_counts(
+            self.examples, key=lambda e: e.optimization_target
+        )
         return {
             "evalset_version": self.evalset_version,
             "evalset_dir": self.evalset_dir,
@@ -75,6 +84,11 @@ class SuiteReport:
                 "examples": len(self.examples),
                 "tier_a_passed": tier_a_passed,
                 "tier_a_failed": len(self.examples) - tier_a_passed,
+            },
+            "groups": {
+                "by_category": by_category,
+                "by_prompt_type": by_prompt_type,
+                "by_optimization_target": by_optimization_target,
             },
             "examples": [self._example_dict(e) for e in self.examples],
         }
@@ -97,6 +111,10 @@ class SuiteReport:
         return {
             "id": e.item_id,
             "tags": e.tags,
+            "category": e.category,
+            "prompt_type": e.prompt_type,
+            "optimization_target": e.optimization_target,
+            "expected_failure_modes": e.expected_failure_modes,
             "structural": e.structural,
             "structural_mismatches": e.structural_mismatches,
             "structural_expect_passed": e.structural_expect_passed,
@@ -105,6 +123,26 @@ class SuiteReport:
             "raw": arm(e.raw),
             "compiled": arm(e.compiled),
         }
+
+
+def _group_counts(
+    examples: list[ExampleReport],
+    *,
+    key: Callable[[ExampleReport], str],
+) -> dict[str, dict[str, int]]:
+    groups: dict[str, dict[str, int]] = {}
+    for example in examples:
+        group_key = key(example) or "unknown"
+        bucket = groups.setdefault(
+            group_key,
+            {"examples": 0, "tier_a_passed": 0, "tier_a_failed": 0},
+        )
+        bucket["examples"] += 1
+        if example.structural_expect_passed:
+            bucket["tier_a_passed"] += 1
+        else:
+            bucket["tier_a_failed"] += 1
+    return dict(sorted(groups.items()))
 
 
 def _structural_dict(sr: StructuralResult) -> dict[str, Any]:
@@ -192,6 +230,10 @@ async def run_single_item(
     return ExampleReport(
         item_id=item.id,
         tags=list(item.tags),
+        category=item.category,
+        prompt_type=item.prompt_type,
+        optimization_target=item.optimization_target,
+        expected_failure_modes=list(item.expected_failure_modes),
         structural=_structural_dict(sr),
         structural_mismatches=list(sr.structural_mismatches),
         structural_expect_passed=struct_pass,

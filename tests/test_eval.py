@@ -66,12 +66,40 @@ def _repo_evalset_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "evalsets" / "bundled"
 
 
+def _small_evalset_dir(tmp_path: Path) -> Path:
+    source = _repo_evalset_dir()
+    target = tmp_path / "evalset"
+    target.mkdir()
+    (target / "manifest.json").write_text(
+        (source / "manifest.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    first_three = "\n".join(
+        (source / "items.jsonl").read_text(encoding="utf-8").splitlines()[:3]
+    )
+    (target / "items.jsonl").write_text(first_three + "\n", encoding="utf-8")
+    return target
+
+
 def test_load_evalset_from_repo() -> None:
     es = load_evalset(_repo_evalset_dir())
     assert es.manifest.version == "1"
     ids = [i.id for i in es.items]
     assert "smoke-structural-01" in ids
     assert "gate-heuristic-01" in ids
+    assert len(es.items) >= 30
+    assert all(i.category for i in es.items)
+    assert all(i.prompt_type for i in es.items)
+    assert all(i.optimization_target for i in es.items)
+    assert all(i.expected_failure_modes for i in es.items)
+
+
+def test_eval_item_new_fields_are_backward_compatible() -> None:
+    item = EvalItem(id="legacy", user_intent="hello")
+    assert item.category == "uncategorized"
+    assert item.prompt_type == "unknown"
+    assert item.optimization_target == "general"
+    assert item.expected_failure_modes == []
 
 
 def test_score_outcome_exact_and_contains() -> None:
@@ -105,7 +133,10 @@ def test_structural_expect_detects_mismatch(monkeypatch: pytest.MonkeyPatch) -> 
     assert sr.structural_mismatches
 
 
-def test_run_eval_suite_structural_only(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_eval_suite_structural_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "k")
     monkeypatch.setenv("MAX_CRITIC_ITERATIONS", "2")
     monkeypatch.setenv("ABORT_ON_HEURISTIC_INJECTION", "true")
@@ -120,7 +151,7 @@ def test_run_eval_suite_structural_only(monkeypatch: pytest.MonkeyPatch) -> None
         + _happy_path_responses()
     )
     llm = CountingFakeLLM(responses)
-    evalset = load_evalset(_repo_evalset_dir())
+    evalset = load_evalset(_small_evalset_dir(tmp_path))
     report = asyncio.run(
         run_eval_suite(
             evalset,
@@ -133,6 +164,15 @@ def test_run_eval_suite_structural_only(monkeypatch: pytest.MonkeyPatch) -> None
     data = report.to_json_dict()
     assert data["counts"]["tier_a_passed"] == len(evalset.items)
     assert data["counts"]["tier_a_failed"] == 0
+    assert "groups" in data
+    assert data["groups"]["by_category"]["smoke"]["examples"] == 1
+    assert data["groups"]["by_prompt_type"]["user_task_prompt"]["examples"] >= 1
+    assert data["groups"]["by_optimization_target"]["general"]["examples"] >= 1
+    first = data["examples"][0]
+    assert first["category"]
+    assert first["prompt_type"]
+    assert first["optimization_target"]
+    assert first["expected_failure_modes"]
     assert llm.chat_calls == len(responses)
 
 
@@ -167,7 +207,7 @@ def test_eval_cli_structural_only_writes_json(
     code = eval_cli.main(
         [
             "--evalset-dir",
-            str(_repo_evalset_dir()),
+            str(_small_evalset_dir(tmp_path)),
             "--structural-only",
             "--output",
             str(out),
@@ -183,3 +223,73 @@ def test_eval_cli_version_exits_zero() -> None:
 
     code = eval_cli.main(["--version"])
     assert code == 0
+
+
+def test_eval_cli_max_items_selects_subset(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("MAX_CRITIC_ITERATIONS", "2")
+    monkeypatch.setenv("ABORT_ON_HEURISTIC_INJECTION", "true")
+    get_settings.cache_clear()
+    responses = _happy_path_responses()
+    import prompt_polisher.eval.cli as eval_cli
+
+    monkeypatch.setattr(
+        eval_cli,
+        "build_llm_client",
+        lambda _settings: CountingFakeLLM(list(responses)),
+    )
+    out = tmp_path / "subset.json"
+    code = eval_cli.main(
+        [
+            "--evalset-dir",
+            str(_small_evalset_dir(tmp_path)),
+            "--structural-only",
+            "--max-items",
+            "1",
+            "--output",
+            str(out),
+        ]
+    )
+    assert code == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["counts"]["examples"] == 1
+    assert data["selection"]["selected_items"] == 1
+    assert data["examples"][0]["id"] == "smoke-structural-01"
+
+
+def test_eval_cli_id_regex_selects_subset(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("MAX_CRITIC_ITERATIONS", "2")
+    monkeypatch.setenv("ABORT_ON_HEURISTIC_INJECTION", "true")
+    get_settings.cache_clear()
+    responses = ['{"negations_flipped":"x","threats":[],"alignment_risk":"low","summary":"s"}']
+    import prompt_polisher.eval.cli as eval_cli
+
+    monkeypatch.setattr(
+        eval_cli,
+        "build_llm_client",
+        lambda _settings: CountingFakeLLM(list(responses)),
+    )
+    out = tmp_path / "regex.json"
+    code = eval_cli.main(
+        [
+            "--evalset-dir",
+            str(_small_evalset_dir(tmp_path)),
+            "--structural-only",
+            "--id-regex",
+            "^gate-",
+            "--output",
+            str(out),
+        ]
+    )
+    assert code == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["counts"]["examples"] == 1
+    assert data["selection"]["selected_items"] == 1
+    assert data["examples"][0]["id"] == "gate-heuristic-01"

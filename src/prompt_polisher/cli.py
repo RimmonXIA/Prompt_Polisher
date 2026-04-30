@@ -33,7 +33,16 @@ EXIT_SUCCESS = 0
 EXIT_ERROR = 1
 EXIT_COMPILATION_ABORTED = 2
 
-ENVELOPE_SCHEMA_VERSION = 1
+ENVELOPE_SCHEMA_VERSION = 2
+TARGET_CHOICES = (
+    "concise",
+    "strict_format",
+    "reasoning",
+    "creative",
+    "agentic",
+    "small_model",
+    "general",
+)
 
 _HELP_DESC = """\
 [bold]Prompt Polisher[/bold] ✦ Elevate your raw ideas into professional-grade AI prompts.
@@ -55,6 +64,237 @@ _HELP_EPILOG = """\
 [bold cyan]Evaluation harness[/bold cyan]
   [dim]•[/dim] [bold]prompt-polisher-eval --help[/bold] — bundled eval CLI reference.
 """
+
+
+_COMPARE_HELP_DESC = """\
+[bold]prompt-polisher compare[/bold] — Compare raw prompt vs compiled prompt on one task input.
+"""
+
+
+def _extract_json_object(text: str) -> dict[str, Any] | None:
+    raw = str(text).strip()
+    if not raw:
+        return None
+    try:
+        obj = json.loads(raw)
+        return obj if isinstance(obj, dict) else None
+    except Exception:
+        pass
+    start = raw.find("{")
+    end = raw.rfind("}") + 1
+    if start >= 0 and end > start:
+        try:
+            obj = json.loads(raw[start:end])
+            return obj if isinstance(obj, dict) else None
+        except Exception:
+            return None
+    return None
+
+
+def _run_compare(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="prompt-polisher compare",
+        formatter_class=RawDescriptionRichHelpFormatter,
+        description=_COMPARE_HELP_DESC,
+        exit_on_error=False,
+    )
+    parser.add_argument("--raw", required=True, help="Raw prompt to compare")
+    parser.add_argument("--task-input", required=True, help="Task input fed to both prompts")
+    parser.add_argument(
+        "--executor-model",
+        default=None,
+        help="Optional model override for raw/compiled execution",
+    )
+    parser.add_argument(
+        "--judge-model",
+        default=None,
+        help="Optional model override for judge step (defaults to executor/default model)",
+    )
+    parser.add_argument(
+        "--structural-only",
+        action="store_true",
+        help="Skip judge step, but still run raw/compiled executor outputs",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["fast", "balanced", "pro"],
+        default=None,
+        help="Compilation mode used before compare",
+    )
+    parser.add_argument(
+        "--target",
+        choices=TARGET_CHOICES,
+        default=None,
+        help="Optimization target used during compile before compare",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print machine-readable JSON result",
+    )
+    parser.add_argument("--pro", action="store_true", help="Use pro compile model defaults")
+    parser.add_argument("-q", "--quiet", action="store_true", help="stderr warnings/errors only")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Keep verbose http logging and print detailed errors",
+    )
+    try:
+        args = parser.parse_args(argv)
+    except argparse.ArgumentError as exc:
+        print(f"{parser.prog}: error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+    settings = get_settings()
+    configure_logging(settings)
+    if args.quiet:
+        logging.getLogger().setLevel(logging.WARNING)
+    if not args.verbose:
+        _dampen_http_client_loggers()
+    settings.apply_langchain_env()
+
+    if args.pro and settings.llm_model is None:
+        settings.deepseek_model = "deepseek-v4-pro"
+        settings.openai_model = "gpt-4o"
+    if args.mode:
+        settings.execution_mode = args.mode
+    if args.target:
+        settings.optimization_target = args.target
+
+    raw_prompt = sanitize_user_input(args.raw.strip())
+    task_input = sanitize_user_input(args.task_input.strip())
+
+    try:
+        llm = build_llm_client(settings)
+        state = asyncio.run(run_compiler_async(raw_prompt, settings, llm))
+    except ValueError as exc:
+        print(f"{parser.prog}: error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except OSError as exc:
+        print(f"{parser.prog}: error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except Exception:
+        logger.exception("compare compilation error")
+        print(f"{parser.prog}: error: unexpected failure during compare", file=sys.stderr)
+        return EXIT_ERROR
+
+    compiled_prompt = str(state.get("final_prompt") or "").strip()
+    compile_code = exit_code_for_state(state)
+    out: dict[str, Any] = {
+        "compare_version": 1,
+        "compile_exit_code": compile_code,
+        "compiled_available": bool(compiled_prompt) and compile_code == EXIT_SUCCESS,
+        "executor_model": args.executor_model or settings.resolved_model(),
+        "judge_model": (
+            None
+            if args.structural_only
+            else (args.judge_model or args.executor_model or settings.resolved_model())
+        ),
+        "task_input": task_input,
+        "raw_prompt": raw_prompt,
+        "compiled_prompt": compiled_prompt,
+        "compiled_prompt_type": str(state.get("prompt_type") or "unknown"),
+        "compiled_optimization_target": str(state.get("optimization_target") or "general"),
+        "compiled_llm_call_count": int(state.get("llm_call_count") or 0),
+        "compiled_nodes_executed": list(state.get("nodes_executed") or []),
+        "compiled_cost_signals": dict(state.get("cost_signals") or {}),
+        "compiled_quality_signals": dict(state.get("quality_signals") or {}),
+        "raw_output": None,
+        "compiled_output": None,
+        "judge": None,
+        "error": None,
+    }
+
+    if compile_code != EXIT_SUCCESS:
+        out["error"] = {
+            "code": "COMPILATION_UNAVAILABLE",
+            "detail": state.get("fatal_error_reason") or state.get("abort_reason") or None,
+        }
+        if args.json:
+            print(json.dumps(out, indent=2, ensure_ascii=False, default=str))
+        else:
+            print("Compare aborted: compiled prompt unavailable.")
+            print(f"Reason: {out['error']['detail']}")
+        return EXIT_COMPILATION_ABORTED
+
+    try:
+        raw_output = llm.chat(
+            [
+                {"role": "system", "content": raw_prompt},
+                {"role": "user", "content": task_input},
+            ],
+            model=args.executor_model,
+        )
+        compiled_output = llm.chat(
+            [
+                {"role": "system", "content": compiled_prompt},
+                {"role": "user", "content": task_input},
+            ],
+            model=args.executor_model,
+        )
+        out["raw_output"] = raw_output
+        out["compiled_output"] = compiled_output
+    except Exception as exc:
+        out["error"] = {"code": "EXECUTOR_ERROR", "detail": str(exc)}
+        if args.json:
+            print(json.dumps(out, indent=2, ensure_ascii=False, default=str))
+        else:
+            print("Compare failed during executor run.")
+            print(str(exc))
+        return EXIT_ERROR
+
+    if not args.structural_only:
+        judge_model = args.judge_model or args.executor_model
+        judge_system = (
+            "You are an impartial evaluator. Return ONLY JSON with keys: "
+            "verdict (raw_wins|polished_wins|tie|invalid), rationale."
+        )
+        judge_user = (
+            f"Task input:\n{task_input}\n\n"
+            f"Raw prompt output:\n{raw_output}\n\n"
+            f"Polished prompt output:\n{compiled_output}\n\n"
+            "Decide which output better satisfies the task input."
+        )
+        judge_raw = ""
+        judge_obj: dict[str, Any] | None = None
+        try:
+            judge_raw = llm.chat(
+                [
+                    {"role": "system", "content": judge_system},
+                    {"role": "user", "content": judge_user},
+                ],
+                model=judge_model,
+            )
+            judge_obj = _extract_json_object(judge_raw)
+        except Exception as exc:
+            judge_obj = {"verdict": "invalid", "rationale": f"judge_error: {exc}"}
+        verdict = str((judge_obj or {}).get("verdict") or "").strip()
+        if verdict not in {"raw_wins", "polished_wins", "tie", "invalid"}:
+            verdict = "invalid"
+        rationale = str((judge_obj or {}).get("rationale") or "").strip()
+        if not rationale:
+            rationale = "missing_rationale"
+        out["judge"] = {
+            "verdict": verdict,
+            "rationale": rationale,
+            "raw": judge_raw,
+        }
+
+    if args.json:
+        print(json.dumps(out, indent=2, ensure_ascii=False, default=str))
+    else:
+        print("## Compare Result")
+        if out["judge"] is not None:
+            print(f"- Verdict: {out['judge']['verdict']}")
+            print(f"- Rationale: {out['judge']['rationale']}")
+        else:
+            print("- Verdict: (skipped, structural-only)")
+        print("\n### Raw Output\n")
+        print(out["raw_output"])
+        print("\n### Compiled Output\n")
+        print(out["compiled_output"])
+    return EXIT_SUCCESS
 
 
 def _package_version() -> str:
@@ -99,7 +339,7 @@ def compilation_envelope(
     include_summary: bool,
     include_before_after: bool,
 ) -> dict[str, Any]:
-    """Versioned JSON envelope; see README Agents and docs/AUDIT_SELF_EXPLAINING.md §3.2."""
+    """Versioned JSON envelope; v2 keeps v1 keys and adds runtime signals."""
     data = compilation_report_dict(
         state,
         settings=settings,
@@ -121,15 +361,44 @@ def compilation_envelope(
             "message": str(state.get("abort_reason") or "compilation_aborted").strip() or None,
             "detail": str(state.get("abort_detail") or "").strip() or None,
         }
+    llm_call_count = int(state.get("llm_call_count") or 0)
+    nodes_executed = list(state.get("nodes_executed") or [])
+    cost_signals = dict(state.get("cost_signals") or {})
+    quality_signals = dict(state.get("quality_signals") or {})
     return {
         "compiled": not (aborted or fatal),
         "version": ENVELOPE_SCHEMA_VERSION,
+        "mode": settings.execution_mode,
+        "optimization_target": (
+            str(state.get("optimization_target"))
+            if state.get("optimization_target")
+            else str(
+                (state.get("compute_aware_routing_decision") or {}).get("optimization_target")
+                or settings.optimization_target
+            )
+        ),
+        "prompt_type": (
+            str(state.get("prompt_type"))
+            if state.get("prompt_type")
+            else str(
+                (state.get("compute_aware_routing_decision") or {}).get("prompt_type")
+                or "unknown"
+            )
+        ),
+        "llm_call_count": llm_call_count,
+        "nodes_executed": nodes_executed,
+        "cost_signals": cost_signals,
+        "quality_signals": quality_signals,
         "report": data,
         "abort_reason": err,
     }
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv_list = list(sys.argv[1:] if argv is None else argv)
+    if argv_list and argv_list[0] == "compare":
+        return _run_compare(argv_list[1:])
+
     parser = argparse.ArgumentParser(
         prog="prompt-polisher",
         formatter_class=RawDescriptionRichHelpFormatter,
@@ -194,6 +463,21 @@ def main(argv: list[str] | None = None) -> int:
         help="Use pro model (e.g. deepseek-v4-pro) instead of the default flash model",
     )
     other_g.add_argument(
+        "--mode",
+        choices=["fast", "balanced", "pro"],
+        default=None,
+        help="Execution mode: fast skips critic loop; balanced/pro use full compile+critic flow",
+    )
+    other_g.add_argument(
+        "--target",
+        choices=TARGET_CHOICES,
+        default=None,
+        help=(
+            "Optimization target "
+            "(concise/strict_format/reasoning/creative/agentic/small_model/general)"
+        ),
+    )
+    other_g.add_argument(
         "-V",
         "--version",
         action="store_true",
@@ -222,7 +506,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        args = parser.parse_args(argv)
+        args = parser.parse_args(argv_list)
         formats_count = sum([bool(args.report), bool(args.envelope)])
         if formats_count > 1:
             parser.error("argument -m/--markdown/--report/--envelope: mutually exclusive")
@@ -261,6 +545,10 @@ def main(argv: list[str] | None = None) -> int:
         if settings.llm_model is None:
             settings.deepseek_model = "deepseek-v4-pro"
             settings.openai_model = "gpt-4o"
+    if args.mode:
+        settings.execution_mode = args.mode
+    if args.target:
+        settings.optimization_target = args.target
 
     raw: str | None = args.prompt
     if args.file is not None:

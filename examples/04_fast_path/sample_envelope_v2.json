@@ -1,0 +1,117 @@
+{
+  "compiled": true,
+  "version": 2,
+  "mode": "fast",
+  "optimization_target": "concise",
+  "prompt_type": "user_task_prompt",
+  "llm_call_count": 4,
+  "nodes_executed": [
+    "intent_sniffer",
+    "compute_aware_router",
+    "structured_compiler",
+    "artifact_dispatcher"
+  ],
+  "cost_signals": {
+    "raw_prompt_chars": 19,
+    "final_prompt_chars": 103
+  },
+  "quality_signals": {
+    "intent_preserved": true,
+    "format_strengthened": "unknown",
+    "over_expansion_risk": "medium",
+    "introduced_unrequested_role": false,
+    "introduced_unrequested_steps": false,
+    "length_ratio": 5.421
+  },
+  "report": {
+    "summary": {
+      "compilation_aborted": false,
+      "abort_reason": null,
+      "abort_detail": null,
+      "output_route": "instance",
+      "red_team_critic_passed": null,
+      "red_team_critic_iterations": null,
+      "red_team_critic_halted_max": null,
+      "alignment_risk": "low",
+      "threats": [],
+      "complexity": "low",
+      "multi_node_recommended": false,
+      "prompt_type": "user_task_prompt",
+      "prompt_type_confidence": 0.78,
+      "optimization_target": "concise",
+      "execution_mode": "fast",
+      "llm_call_count": 4,
+      "nodes_executed": [
+        "intent_sniffer",
+        "compute_aware_router",
+        "structured_compiler",
+        "artifact_dispatcher"
+      ],
+      "cost_signals": {
+        "raw_prompt_chars": 19,
+        "final_prompt_chars": 103
+      },
+      "quality_signals": {
+        "intent_preserved": true,
+        "format_strengthened": "unknown",
+        "over_expansion_risk": "medium",
+        "introduced_unrequested_role": false,
+        "introduced_unrequested_steps": false,
+        "length_ratio": 5.421
+      }
+    },
+    "before_after": null,
+    "settings": null,
+    "runtime": {
+      "prompt_type": "user_task_prompt",
+      "prompt_type_confidence": 0.78,
+      "optimization_target": "concise",
+      "execution_mode": "fast",
+      "llm_call_count": 4,
+      "nodes_executed": [
+        "intent_sniffer",
+        "compute_aware_router",
+        "structured_compiler",
+        "artifact_dispatcher"
+      ],
+      "cost_signals": {
+        "raw_prompt_chars": 19,
+        "final_prompt_chars": 103
+      },
+      "quality_signals": {
+        "intent_preserved": true,
+        "format_strengthened": "unknown",
+        "over_expansion_risk": "medium",
+        "introduced_unrequested_role": false,
+        "introduced_unrequested_steps": false,
+        "length_ratio": 5.421
+      }
+    },
+    "intent_sniffer_analysis": {
+      "alignment_risk": "low",
+      "threats": []
+    },
+    "compute_aware_routing_decision": {
+      "complexity": "low",
+      "multi_node_recommended": false,
+      "prompt_type": "user_task_prompt",
+      "prompt_type_confidence": 0.78,
+      "optimization_target": "concise"
+    },
+    "critic": {
+      "passed": null,
+      "iterations": null,
+      "halted_at_max": null,
+      "feedback": "",
+      "prm_score": null
+    },
+    "compiler_draft": "Summarize in one short paragraph with concrete nouns and no filler.",
+    "deliverables": {
+      "output_route": "instance",
+      "final_prompt": "Summarize the input in one paragraph under 80 words. Keep core facts only.",
+      "workflow_blueprint": "",
+      "dspy_sketch": ""
+    }
+  },
+  "abort_reason": null
+}

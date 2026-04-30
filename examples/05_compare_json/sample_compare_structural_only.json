@@ -1,0 +1,36 @@
+{
+  "compare_version": 1,
+  "compile_exit_code": 0,
+  "compiled_available": true,
+  "executor_model": "gpt-4o-mini",
+  "judge_model": null,
+  "task_input": "Alice is 30",
+  "raw_prompt": "Answer in JSON with name and age",
+  "compiled_prompt": "Return ONLY valid JSON with keys: name (string), age (integer). If missing, use null.",
+  "compiled_prompt_type": "json_extraction_prompt",
+  "compiled_optimization_target": "strict_format",
+  "compiled_llm_call_count": 5,
+  "compiled_nodes_executed": [
+    "intent_sniffer",
+    "compute_aware_router",
+    "structured_compiler",
+    "red_team_critic",
+    "artifact_dispatcher"
+  ],
+  "compiled_cost_signals": {
+    "raw_prompt_chars": 33,
+    "final_prompt_chars": 93
+  },
+  "compiled_quality_signals": {
+    "intent_preserved": true,
+    "format_strengthened": true,
+    "over_expansion_risk": "low",
+    "introduced_unrequested_role": false,
+    "introduced_unrequested_steps": false,
+    "length_ratio": 2.818
+  },
+  "raw_output": "{\"name\":\"Alice\",\"age\":30}",
+  "compiled_output": "{\"name\":\"Alice\",\"age\":30}",
+  "judge": null,
+  "error": null
+}

@@ -84,3 +84,31 @@ def test_resolved_api_key_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     s = get_settings()
     with pytest.raises(ValueError):
         s.resolved_api_key()
+
+
+def test_execution_mode_defaults_balanced(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.delenv("EXECUTION_MODE", raising=False)
+    get_settings.cache_clear()
+    assert get_settings().execution_mode == "balanced"
+
+
+def test_execution_mode_env_lowercase(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("EXECUTION_MODE", "FAST")
+    get_settings.cache_clear()
+    assert get_settings().execution_mode == "fast"
+
+
+def test_optimization_target_defaults_general(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.delenv("OPTIMIZATION_TARGET", raising=False)
+    get_settings.cache_clear()
+    assert get_settings().optimization_target == "general"
+
+
+def test_optimization_target_env_lowercase(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.setenv("OPTIMIZATION_TARGET", "STRICT_FORMAT")
+    get_settings.cache_clear()
+    assert get_settings().optimization_target == "strict_format"
