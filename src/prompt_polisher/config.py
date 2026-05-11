@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+if TYPE_CHECKING:
+    from prompt_polisher.llm.config import ProviderConfig
 
 ProviderName = str
 ExecutionMode = Literal["fast", "balanced", "pro"]
@@ -31,6 +34,8 @@ class Settings(BaseSettings):
 
     openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
     deepseek_api_key: SecretStr | None = Field(default=None, alias="DEEPSEEK_API_KEY")
+    anthropic_api_key: SecretStr | None = Field(default=None, alias="ANTHROPIC_API_KEY")
+    gemini_api_key: SecretStr | None = Field(default=None, alias="GEMINI_API_KEY")
     llm_api_key: SecretStr | None = Field(default=None, alias="LLM_API_KEY")
 
     llm_api_base: str | None = Field(default=None, alias="LLM_API_BASE")
@@ -143,29 +148,57 @@ class Settings(BaseSettings):
         return v
 
     def resolved_api_key(self) -> str:
-        if self.llm_api_key is not None:
-            return self.llm_api_key.get_secret_value()
-        if self.llm_provider == "deepseek" and self.deepseek_api_key:
-            return self.deepseek_api_key.get_secret_value()
-        if self.llm_provider == "openai" and self.openai_api_key:
-            return self.openai_api_key.get_secret_value()
+        cfg = self.resolve_provider_config()
+        return cfg.api_key.get_secret_value()
 
-        # Fallback to provider-specific environment variables that litellm might expect
-        # but here we just try to return what we have.
-        if self.llm_provider == "deepseek":
-            msg = "DEEPSEEK_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=deepseek"
-            raise ValueError(msg)
-        if self.llm_provider == "openai":
-            if self.openai_api_key is None:
+    def resolve_provider_config(self) -> ProviderConfig:
+        from prompt_polisher.llm.config import AnthropicConfig, GeminiConfig, OpenAICompatConfig
+
+        provider = self.llm_provider.strip().lower()
+        timeout = 180.0
+
+        if provider == "anthropic":
+            api_key = self.anthropic_api_key or self.llm_api_key
+            if api_key is None:
+                msg = "ANTHROPIC_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=anthropic"
+                raise ValueError(msg)
+            model = self.llm_model or "claude-3-5-sonnet-latest"
+            return AnthropicConfig(api_key=api_key, model=model, timeout=timeout)
+
+        if provider in {"gemini", "google"}:
+            api_key = self.gemini_api_key or self.llm_api_key
+            if api_key is None:
+                msg = "GEMINI_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=gemini/google"
+                raise ValueError(msg)
+            model = self.llm_model or "gemini-2.0-flash"
+            return GeminiConfig(api_key=api_key, model=model, timeout=timeout)
+
+        if self.llm_api_key is not None:
+            api_key = self.llm_api_key
+        elif self.llm_provider == "deepseek" and self.deepseek_api_key:
+            api_key = self.deepseek_api_key
+        elif self.llm_provider == "openai" and self.openai_api_key:
+            api_key = self.openai_api_key
+        else:
+            # For other OpenAI-compatible providers, we expect LLM_API_KEY to be set.
+            if self.llm_provider == "deepseek":
+                msg = "DEEPSEEK_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=deepseek"
+                raise ValueError(msg)
+            if self.llm_provider == "openai":
                 msg = "OPENAI_API_KEY or LLM_API_KEY is required when LLM_PROVIDER=openai"
                 raise ValueError(msg)
-            return self.openai_api_key.get_secret_value()
+            if self.llm_api_key is None:
+                msg = f"LLM_API_KEY is required for provider '{self.llm_provider}'"
+                raise ValueError(msg)
+            api_key = self.llm_api_key
 
-        # For other providers, we expect LLM_API_KEY to be set
-        if self.llm_api_key is None:
-            msg = f"LLM_API_KEY is required for provider '{self.llm_provider}'"
-            raise ValueError(msg)
-        return self.llm_api_key.get_secret_value()
+        return OpenAICompatConfig(
+            provider=provider,
+            api_key=api_key,
+            model=self.resolved_model(),
+            base_url=self.resolved_base_url(),
+            timeout=timeout,
+        )
 
     def resolved_base_url(self) -> str | None:
         if self.llm_api_base:

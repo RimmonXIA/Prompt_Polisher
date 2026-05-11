@@ -12,7 +12,7 @@
 1. **调用方/发起者 (Invoker)**: 触发 CLI/API 的用户或自动化主体。
 2. **作者 (Author)**: `raw_prompt` 的提出者与意图来源（概念上需与调配逻辑解耦，以评估信任度）。
 3. **编排器 (Orchestrator, 即 Prompt Polisher 本身)**: 我们的 LangGraph 编译流水线。它以第三人称的“分析师/架构师”身份行事，**绝不**在此阶段进行最终助手的角色扮演 (role-play)。
-4. **推理引擎 (Inference Engine, 节点 LLM)**: 驱动内部节点（Intent Sniffer, Structured Compiler, Red-Team Critic 等）的算力源。自 v0.2.0 起，通过 LiteLLM 实现了供应商中立 (Provider-agnostic)，支持从 OpenAI, Anthropic, Gemini 到国内主流厂商（Qwen, GLM 等）的无缝切换。
+4. **推理引擎 (Inference Engine, 节点 LLM)**: 驱动内部节点（Intent Sniffer, Structured Compiler, Red-Team Critic 等）的算力源。当前通过自研 Provider Adapter Registry 实现供应商中立 (Provider-agnostic)，覆盖 OpenAI-Compatible、Anthropic、Gemini，并支持以适配器扩展 Qwen、GLM 等后端。
 5. **执行目标 (Target / Executor)**: 最终接收并运行 `final_prompt` 或工作流的下游模型。
 
 ### 身份隔离准则 (Persona & Pronoun Discipline)

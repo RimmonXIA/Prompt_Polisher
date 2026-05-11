@@ -2,11 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Protocol, cast, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
-import litellm
-from litellm import acompletion, completion
-from openai import APIConnectionError
 from tenacity import (
     AsyncRetrying,
     Retrying,
@@ -17,13 +14,13 @@ from tenacity import (
 )
 
 from prompt_polisher.config import Settings
+from prompt_polisher.llm.errors import ProviderConnectionError
+from prompt_polisher.llm.protocol import ChatMessage
+from prompt_polisher.llm.registry import build_adapter
 from prompt_polisher.observability import start_llm_span
 from prompt_polisher.text import preview_text
 
 logger = logging.getLogger(__name__)
-
-# Extra attempts after the SDK exhausts its own retries.
-# We set the SDK's internal max_retries to 0 so we don't multiply these!
 
 
 @runtime_checkable
@@ -46,7 +43,6 @@ class LLMClient(Protocol):
 
 
 def _normalize_socks_proxy() -> None:
-    """Normalize 'socks://' to 'socks5://' in environment variables for httpx compatibility."""
     proxy_vars = [
         "ALL_PROXY",
         "all_proxy",
@@ -58,27 +54,19 @@ def _normalize_socks_proxy() -> None:
     for env_var in proxy_vars:
         val = os.environ.get(env_var)
         if val and val.startswith("socks://"):
-            new_val = val.replace("socks://", "socks5://", 1)
-            logger.debug("Normalizing proxy %s: %s -> %s", env_var, val, new_val)
-            os.environ[env_var] = new_val
+            os.environ[env_var] = val.replace("socks://", "socks5://", 1)
+
+
+def _to_chat_messages(messages: list[dict[str, str]]) -> list[ChatMessage]:
+    return [cast(ChatMessage, {"role": m["role"], "content": m["content"]}) for m in messages]
 
 
 class UniversalLLMClient:
     def __init__(self, settings: Settings) -> None:
         _normalize_socks_proxy()
         self._settings = settings
-        self._api_key = settings.resolved_api_key()
-        self._base_url = settings.resolved_base_url()
-
-    def _resolve_model_name(self, model: str | None) -> str:
-        resolved = model if model else self._settings.resolved_model()
-        provider = self._settings.llm_provider
-        if provider and "/" not in resolved:
-            # LiteLLM needs provider prefixes for most non-standard models
-            if provider == "openai" and resolved.startswith("gpt-"):
-                return resolved
-            return f"{provider}/{resolved}"
-        return resolved
+        self._provider_config = settings.resolve_provider_config()
+        self._adapter = build_adapter(self._provider_config)
 
     def chat(
         self,
@@ -88,36 +76,26 @@ class UniversalLLMClient:
         model: str | None = None,
     ) -> str:
         temp = self._settings.llm_temperature if temperature is None else temperature
-        resolved_model = self._resolve_model_name(model)
-        preview = None
-        if self._settings.log_prompt_previews:
-            preview = preview_text(str(messages))
-
+        request_model = model or self._provider_config.model
+        preview = preview_text(str(messages)) if self._settings.log_prompt_previews else None
         span = start_llm_span(self._settings, name="llm.chat", input_preview=preview)
         try:
             for attempt in Retrying(
-                retry=retry_if_exception_type(
-                    (APIConnectionError, litellm.exceptions.APIConnectionError)
-                ),
+                retry=retry_if_exception_type(ProviderConnectionError),
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(5),
                 before_sleep=before_sleep_log(logger, logging.WARNING),
                 reraise=True,
             ):
                 with attempt:
-                    resp = completion(
-                        model=resolved_model,
-                        messages=cast(Any, messages),
+                    response = self._adapter.complete(
+                        _to_chat_messages(messages),
+                        model=request_model,
                         temperature=temp,
-                        api_key=self._api_key,
-                        base_url=self._base_url,
-                        timeout=180.0,
+                        timeout=self._provider_config.timeout,
                     )
-            content = resp.choices[0].message.content or ""
-            span.end(
-                output=preview_text(content) if self._settings.log_prompt_previews else None,
-            )
-            return content
+            span.end(output=preview_text(response) if self._settings.log_prompt_previews else None)
+            return response
         except Exception:
             span.end(output=None)
             raise
@@ -130,36 +108,26 @@ class UniversalLLMClient:
         model: str | None = None,
     ) -> str:
         temp = self._settings.llm_temperature if temperature is None else temperature
-        resolved_model = self._resolve_model_name(model)
-        preview = None
-        if self._settings.log_prompt_previews:
-            preview = preview_text(str(messages))
-
+        request_model = model or self._provider_config.model
+        preview = preview_text(str(messages)) if self._settings.log_prompt_previews else None
         span = start_llm_span(self._settings, name="llm.achat", input_preview=preview)
         try:
             async for attempt in AsyncRetrying(
-                retry=retry_if_exception_type(
-                    (APIConnectionError, litellm.exceptions.APIConnectionError)
-                ),
+                retry=retry_if_exception_type(ProviderConnectionError),
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(5),
                 before_sleep=before_sleep_log(logger, logging.WARNING),
                 reraise=True,
             ):
                 with attempt:
-                    resp = await acompletion(
-                        model=resolved_model,
-                        messages=cast(Any, messages),
+                    response = await self._adapter.acomplete(
+                        _to_chat_messages(messages),
+                        model=request_model,
                         temperature=temp,
-                        api_key=self._api_key,
-                        base_url=self._base_url,
-                        timeout=180.0,
+                        timeout=self._provider_config.timeout,
                     )
-            content = resp.choices[0].message.content or ""
-            span.end(
-                output=preview_text(content) if self._settings.log_prompt_previews else None,
-            )
-            return content
+            span.end(output=preview_text(response) if self._settings.log_prompt_previews else None)
+            return response
         except Exception:
             span.end(output=None)
             raise

@@ -81,7 +81,13 @@ Most prompts fail because they lack structure, trigger negative constraints, or 
 
 - **Multi-Track Artifacts**: Emits finalized prompts, **LangGraph blueprints**, and **DSPy sketches** for downstream automation. 
 - **A2A Protocol Ready**: Designed as a spec-compliant **A2A Participant** with full JSON-RPC and SSE support.
-- **Provider-Agnostic**: Internal routing uses **LiteLLM**, providing a single configuration surface for OpenAI, Anthropic, Gemini, DeepSeek, and more.
+- **Provider-Agnostic**: Internal routing uses an in-house **Provider Adapter Registry**, providing a single configuration surface for OpenAI-compatible APIs, Anthropic, Gemini, and more.
+
+### Provider Matrix
+
+- **OpenAI-Compatible Adapter**: OpenAI, DeepSeek, Qwen-compatible, GLM-compatible, OpenRouter, Together, Groq, Fireworks, vLLM, Ollama, LM Studio (via `LLM_API_BASE` + `LLM_API_KEY` + `LLM_MODEL`).
+- **Anthropic Adapter**: Claude models via `ANTHROPIC_API_KEY` (or `LLM_API_KEY`) with `LLM_PROVIDER=anthropic`.
+- **Gemini Adapter**: Gemini models via `GEMINI_API_KEY` (or `LLM_API_KEY`) with `LLM_PROVIDER=gemini` or `google`.
 
 ---
 

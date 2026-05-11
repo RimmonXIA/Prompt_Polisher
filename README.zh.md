@@ -75,7 +75,7 @@ Meta Questions:
 ### 🔌 极客体验 (Developer & Agent Native)
 - **多轨输出**：除最终 Prompt 外，同时生成供下游自动化使用的 **LangGraph 蓝图** 与 **DSPy 代码草图**。
 - **A2A 原生支持**：作为全合规的 **A2A 参与者**，原生支持 JSON-RPC 与 SSE 实时任务委托。
-- **多模型兼容**：图内调用经 **LiteLLM** 统一路由，一套代码无缝对接 OpenAI、Anthropic、Gemini、DeepSeek 等所有主流后端。
+- **多模型兼容**：图内调用经自研 **Provider Adapter Registry** 统一路由，一套代码无缝对接 OpenAI-Compatible、Anthropic、Gemini、DeepSeek 等主流后端。
 
 ---
 
